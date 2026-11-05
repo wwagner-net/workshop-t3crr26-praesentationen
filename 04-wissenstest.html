@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wissenstest Git, SSH und Deployment · Workshop TYPO3camp RheinRuhr 2026</title>
+<meta name="robots" content="noindex">
+<style>
+:root {
+  --brand-dark: #0d2957;
+  --brand-darker: #0a1f44;
+  --brand-blue: #1e5fca;
+  --brand-gold: #ffd700;
+  --brand-green: #317b4d;
+  --brand-red: #b42318;
+  --brand-gray: #e9e9e9;
+  --border: #d4d8e0;
+  --muted: #4a5568;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font-family: var(--font-sans); color: #000; background: #f3f4f6; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+button { font: inherit; }
+code { font-family: var(--font-mono); font-size: .9em; background: rgba(30,95,202,.1); color: var(--brand-dark); padding: 1px 6px; border-radius: 5px; overflow-wrap: anywhere; }
+h1, h2, h3 { color: var(--brand-dark); letter-spacing: -0.01em; line-height: 1.25; margin: 0; }
+
+header.top {
+  background: linear-gradient(135deg, var(--brand-dark), var(--brand-darker));
+  color: #fff; padding: 28px 16px 30px;
+}
+header.top .inner, main { max-width: 760px; margin: 0 auto; }
+.eyebrow { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-gold); margin-bottom: 8px; }
+header.top h1 { color: #fff; font-size: clamp(1.6rem, 4.5vw, 2.3rem); }
+header.top p { margin: 10px 0 0; color: rgba(255,255,255,.8); font-size: 1.02rem; }
+main { padding: 24px 16px 60px; }
+
+.card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: 0 2px 10px rgba(13,41,87,.05); }
+.card + .card { margin-top: 16px; }
+
+/* Start */
+.topics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+@media (max-width: 520px) { .topics { grid-template-columns: 1fr; } }
+.topic {
+  text-align: left; background: #fff; border: 2px solid var(--border); border-radius: 12px; padding: 16px 18px;
+  cursor: pointer; transition: border-color .15s, transform .15s;
+}
+.topic:hover, .topic:focus-visible { border-color: var(--brand-blue); transform: translateY(-2px); outline: none; }
+.topic strong { display: block; color: var(--brand-dark); font-size: 1.1rem; }
+.topic span { color: var(--muted); font-size: .92rem; }
+.topic .best { display: block; margin-top: 6px; font-size: .85rem; color: var(--brand-green); font-weight: 600; }
+.topic.all { border-color: var(--brand-dark); background: var(--brand-dark); }
+.topic.all strong, .topic.all span { color: #fff; }
+.topic.all .best { color: var(--brand-gold); }
+.hint { font-size: .9rem; color: var(--muted); margin-top: 14px; }
+
+/* Quiz */
+.bar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; font-size: .92rem; color: var(--muted); }
+.progress { flex: 1; height: 8px; background: var(--brand-gray); border-radius: 99px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--brand-gold); width: 0; transition: width .3s; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 10px; border-radius: 99px; background: var(--brand-gray); color: var(--brand-dark); }
+.qhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.qtype { font-size: .85rem; color: var(--muted); }
+.question { font-size: 1.2rem; font-weight: 700; color: var(--brand-dark); margin: 4px 0 16px; line-height: 1.4; }
+
+.options { display: grid; gap: 10px; }
+.opt {
+  display: flex; gap: 12px; align-items: flex-start; border: 2px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; cursor: pointer; background: #fff; transition: border-color .15s, background .15s;
+}
+.opt:hover { border-color: #9fb6e6; }
+.opt input { margin: 4px 0 0; width: 18px; height: 18px; accent-color: var(--brand-blue); flex: none; }
+.opt.checked { border-color: var(--brand-blue); background: rgba(30,95,202,.05); }
+.opt.right { border-color: var(--brand-green); background: rgba(49,123,77,.08); }
+.opt.wrong { border-color: var(--brand-red); background: rgba(180,35,24,.06); }
+.opt.missed { border-color: var(--brand-green); border-style: dashed; }
+.opt .mark { margin-left: auto; font-weight: 700; flex: none; }
+.opt.right .mark { color: var(--brand-green); }
+.opt.wrong .mark { color: var(--brand-red); }
+.opt.missed .mark { color: var(--brand-green); }
+.locked .opt { cursor: default; }
+
+/* Reihenfolge */
+.order { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.order li { display: flex; align-items: center; gap: 10px; border: 2px solid var(--border); border-radius: 10px; padding: 10px 12px; background: #fff; }
+.order .num { width: 28px; height: 28px; flex: none; border-radius: 8px; background: var(--brand-gray); color: var(--brand-dark); font-weight: 700; display: grid; place-items: center; font-size: .9rem; }
+.order .txt { flex: 1; }
+.order .mv { display: flex; gap: 4px; flex: none; }
+.order .mv button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: #fff; cursor: pointer; color: var(--brand-dark); font-size: 16px; }
+.order .mv button:hover:not(:disabled) { border-color: var(--brand-blue); color: var(--brand-blue); }
+.order .mv button:disabled { opacity: .35; cursor: default; }
+.order li.right { border-color: var(--brand-green); background: rgba(49,123,77,.08); }
+.order li.wrong { border-color: var(--brand-red); background: rgba(180,35,24,.06); }
+.order .should { font-size: .85rem; color: var(--brand-green); font-weight: 600; flex: none; }
+
+/* Zuordnung */
+.match { display: grid; gap: 10px; }
+.match .row { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr); gap: 10px; align-items: center; border: 2px solid var(--border); border-radius: 10px; padding: 10px 12px; background: #fff; }
+.match .row.right { border-color: var(--brand-green); background: rgba(49,123,77,.08); }
+.match .row.wrong { border-color: var(--brand-red); background: rgba(180,35,24,.06); }
+.match label { font-weight: 600; color: var(--brand-dark); }
+.match select { width: 100%; font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: #000; }
+.match .should { grid-column: 1 / -1; font-size: .88rem; color: var(--brand-green); font-weight: 600; }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 10px;
+  padding: 12px 20px; font-weight: 700; cursor: pointer; background: var(--brand-blue); color: #fff;
+  box-shadow: 0 6px 16px rgba(30,95,202,.2); transition: background .15s, transform .15s;
+}
+.btn:hover { background: var(--brand-dark); transform: translateY(-1px); }
+.btn:disabled { opacity: .45; cursor: default; transform: none; box-shadow: none; }
+.btn.ghost { background: #fff; color: var(--brand-dark); border: 1px solid var(--border); box-shadow: none; }
+.btn.ghost:hover { border-color: var(--brand-blue); color: var(--brand-blue); background: #fff; }
+.btn.gold { background: var(--brand-gold); color: var(--brand-dark); box-shadow: 0 6px 16px rgba(255,215,0,.25); }
+.btn.gold:hover { background: #f0c800; }
+.btn:focus-visible, .topic:focus-visible, select:focus-visible, .mv button:focus-visible { outline: 3px solid var(--brand-gold); outline-offset: 2px; }
+.keys { font-size: .82rem; color: var(--muted); margin-left: auto; }
+
+.feedback { margin-top: 16px; border-radius: 10px; padding: 14px 16px; border-left: 6px solid; }
+.feedback.ok { border-color: var(--brand-green); background: rgba(49,123,77,.08); }
+.feedback.no { border-color: var(--brand-red); background: rgba(180,35,24,.06); }
+.feedback.part { border-color: var(--brand-gold); background: rgba(255,215,0,.14); }
+.feedback strong { display: block; color: var(--brand-dark); margin-bottom: 4px; }
+.feedback p { margin: 0; }
+
+/* Ergebnis */
+.score { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.ring { width: 120px; height: 120px; flex: none; }
+.score h2 { font-size: 1.6rem; }
+.score p { margin: 6px 0 0; color: var(--muted); }
+.per { margin-top: 18px; display: grid; gap: 10px; }
+.per .line { display: grid; grid-template-columns: 110px 1fr 60px; gap: 10px; align-items: center; font-size: .95rem; }
+.per .track { height: 10px; background: var(--brand-gray); border-radius: 99px; overflow: hidden; }
+.per .track i { display: block; height: 100%; background: var(--brand-blue); }
+.per .val { text-align: right; font-weight: 700; color: var(--brand-dark); }
+.review { margin-top: 10px; padding: 0; list-style: none; display: grid; gap: 10px; }
+.review li { border: 1px solid var(--border); border-left: 5px solid var(--brand-red); border-radius: 10px; padding: 12px 14px; background: #fff; }
+.review li .q { font-weight: 700; color: var(--brand-dark); }
+.review li .a { margin-top: 4px; font-size: .95rem; }
+footer { text-align: center; font-size: .85rem; color: var(--muted); padding: 0 16px 30px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 520px) {
+  .card { padding: 18px 16px; }
+  .question { font-size: 1.08rem; }
+  .match .row { grid-template-columns: 1fr; }
+  .order li { padding: 8px 10px; gap: 8px; }
+  .order .mv { flex-direction: column; }
+  .order li { flex-wrap: wrap; }
+  .order .should { flex-basis: 100%; padding-left: 32px; }
+  .order .num { width: 24px; height: 24px; }
+  header.top { padding: 22px 16px 24px; }
+  .per .line { grid-template-columns: 90px 1fr 48px; }
+  .keys { display: none; }
+  .btn { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="inner">
+    <span class="eyebrow">Workshop TYPO3 v14 · TYPO3camp RheinRuhr 2026</span>
+    <h1>Wissenstest: Git, SSH und Deployment</h1>
+    <p>Prüfe, was von den drei Grundlagen-Blöcken hängen geblieben ist. Zu jeder Frage gibt es eine kurze Erklärung.</p>
+  </div>
+</header>
+
+<main id="app" aria-live="polite"></main>
+
+<footer>Wolfgang Wagner · TYPO3 Seminare und Support · Funktioniert komplett offline, es werden keine Daten übertragen.</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------------------------------------------------------------
+     Fragen
+     type: single | multi | order | match
+     single/multi: options [{t, ok}]  · order: items in richtiger Reihenfolge
+     match: pairs [[links, rechts]]   · why: Erklärung (wird immer gezeigt)
+  ---------------------------------------------------------------- */
+  var TOPICS = { git: 'Git', ssh: 'SSH-Schlüssel', deploy: 'Deployment' };
+
+  var Q = [
+    // ---------- Git ----------
+    { topic: 'git', type: 'single', q: 'Was ist Git?',
+      options: [
+        { t: 'Ein verteiltes Versionskontrollsystem, das lokal auf deinem Rechner arbeitet', ok: true },
+        { t: 'Eine Webplattform von Microsoft zum Hosten von Code' },
+        { t: 'Ein Programm zum Hochladen von Dateien per FTP' },
+        { t: 'Ein Cloud-Dienst für automatische Backups' }],
+      why: 'Git ist das Werkzeug auf deinem Rechner. Es braucht weder Server noch Internet und merkt sich jeden gespeicherten Stand deines Projekts. GitHub ist eine Plattform, die Git-Repositories hostet.' },
+
+    { topic: 'git', type: 'single', q: 'Was macht <code>git add packages/sitepackage</code>?',
+      options: [
+        { t: 'Es legt die Änderungen im Staging-Bereich für den nächsten Commit bereit', ok: true },
+        { t: 'Es speichert die Änderungen dauerhaft in der Historie' },
+        { t: 'Es schickt die Änderungen zu GitHub' },
+        { t: 'Es legt einen neuen Branch mit diesem Namen an' }],
+      why: 'Mit <code>git add</code> wählst du aus, was in den nächsten Commit gehört. Dauerhaft gespeichert wird erst mit <code>git commit</code>, zum Remote geht es mit <code>git push</code>.' },
+
+    { topic: 'git', type: 'order', q: 'Bring den täglichen Ablauf in die richtige Reihenfolge.',
+      items: ['Dateien bearbeiten', '<code>git add</code>', '<code>git commit -m "…"</code>', '<code>git push</code>'],
+      why: 'Erst bearbeiten, dann im Staging-Bereich auswählen, dann als Commit speichern, dann zum Remote schicken. Mit <code>git status</code> siehst du jederzeit, wo deine Änderungen gerade stehen.' },
+
+    { topic: 'git', type: 'single', q: 'Was ist ein Branch technisch gesehen?',
+      options: [
+        { t: 'Ein beweglicher Zeiger auf einen Commit', ok: true },
+        { t: 'Eine vollständige Kopie des Projektordners' },
+        { t: 'Ein eigenes Repository auf GitHub' },
+        { t: 'Ein Backup des letzten Stands' }],
+      why: 'Ein Branch zeigt nur auf einen Commit und wandert mit jedem neuen Commit weiter. Deshalb kostet das Anlegen praktisch nichts. Typisch: neues Feature im eigenen Branch, testen, dann in <code>main</code> mergen.' },
+
+    { topic: 'git', type: 'single', q: 'Welcher Befehl macht dasselbe wie <code>git switch -c feature/header</code>?',
+      options: [
+        { t: '<code>git checkout -b feature/header</code>', ok: true },
+        { t: '<code>git branch -d feature/header</code>' },
+        { t: '<code>git merge feature/header</code>' },
+        { t: '<code>git clone feature/header</code>' }],
+      why: 'Beide legen den Branch an und wechseln hinein. <code>checkout</code> ist der ältere Befehl und weiterhin gültig. <code>switch</code> gibt es seit Git 2.23 und kann nur Branches wechseln. Damit ist ausgeschlossen, dass man aus Versehen Dateiänderungen verwirft.' },
+
+    { topic: 'git', type: 'multi', q: 'Was gehört in das Git-Repository eines TYPO3-Projekts? (mehrere richtig)',
+      options: [
+        { t: '<code>composer.json</code> und <code>composer.lock</code>', ok: true },
+        { t: 'Das Sitepackage in <code>packages/</code>', ok: true },
+        { t: 'Die Site-Konfiguration in <code>config/sites/</code>', ok: true },
+        { t: '<code>vendor/</code>' },
+        { t: '<code>public/fileadmin/</code>' },
+        { t: '<code>.env</code> mit Zugangsdaten' }],
+      why: 'Code und Konfiguration gehören hinein. <code>vendor/</code> erzeugt Composer, <code>fileadmin</code> sind Redaktionsdaten, und Zugangsdaten haben im Repository nichts verloren.' },
+
+    { topic: 'git', type: 'single', q: 'Warum solltest du <code>composer.lock</code> immer committen?',
+      options: [
+        { t: 'Damit auf dem Server exakt dieselben Paketversionen installiert werden wie lokal', ok: true },
+        { t: 'Damit Composer schneller startet' },
+        { t: 'Weil sonst niemand das Repository klonen kann' },
+        { t: 'Weil GitHub die Datei für Actions verlangt' }],
+      why: 'Die Lock-Datei hält die genauen Versionen aller Pakete fest. Ohne sie installiert <code>composer install</code> auf dem Server womöglich neuere Versionen als bei dir lokal.' },
+
+    { topic: 'git', type: 'single', q: 'Du hast versehentlich ein Passwort committet und es im nächsten Commit wieder gelöscht. Ist es jetzt weg?',
+      options: [
+        { t: 'Nein, es steht weiterhin in der Historie und ist für alle mit Zugriff aufs Repository sichtbar', ok: true },
+        { t: 'Ja, der neue Commit überschreibt den alten' },
+        { t: 'Ja, solange du noch nicht gepusht hast, verschwindet es automatisch' },
+        { t: 'Nur auf GitHub ist es noch sichtbar, lokal nicht' }],
+      why: 'Git vergisst nichts: Jeder Commit bleibt in der Historie. Ein versehentlich committetes Passwort deshalb sofort ändern. Am besten gelangt es gar nicht erst ins Repository.' },
+
+    { topic: 'git', type: 'match', q: 'Ordne die Befehle ihrer Aufgabe zu.',
+      pairs: [['<code>git clone</code>', 'Komplette Kopie vom Remote holen'],
+              ['<code>git push</code>', 'Eigene Commits zum Remote schicken'],
+              ['<code>git pull</code>', 'Neue Commits der anderen abholen'],
+              ['<code>git status</code>', 'Anzeigen, was geändert oder vorgemerkt ist']],
+      why: 'Das Remote ist der gemeinsame Treffpunkt. <code>clone</code> holt es einmalig, <code>push</code> und <code>pull</code> gleichen danach in beide Richtungen ab.' },
+
+    { topic: 'git', type: 'single', q: 'Du ziehst mit einem Projekt von GitHub zu GitLab um. Was kommt mit einem einfachen <code>git push</code> zum neuen Remote mit?',
+      options: [
+        { t: 'Die komplette Commit-Historie mit allen Branches, die du pushst', ok: true },
+        { t: 'Die Issues und Pull-Request-Diskussionen' },
+        { t: 'Die GitHub-Actions-Workflows laufen dort unverändert weiter' },
+        { t: 'Nichts, Git-Repositories lassen sich nicht umziehen' }],
+      why: 'Git ist unabhängig vom Anbieter: Die Historie zieht einfach mit. Issues, Reviews und vor allem die CI-Konfiguration sind dagegen anbieterspezifisch und müssen nachgezogen werden.' },
+
+    { topic: 'git', type: 'single', q: 'Ein Kunde verlangt, dass der Quellcode in eigener Hand bleibt und nicht bei einem Anbieter außerhalb der EU liegt. Was passt?',
+      options: [
+        { t: 'Ein selbst gehostetes GitLab, Gitea oder Forgejo', ok: true },
+        { t: 'Ein privates Repository auf GitHub reicht immer' },
+        { t: 'Gar keine Versionskontrolle verwenden' },
+        { t: 'Den Code per E-Mail austauschen' }],
+      why: 'Self-hosted gibt volle Kontrolle über Daten und Standort. Der Preis: Updates, Backups, Sicherheit und eigene Runner für die Automatisierung liegen bei dir. Ohne besondere Vorgaben ist SaaS der einfachere Start.' },
+
+    // ---------- SSH ----------
+    { topic: 'ssh', type: 'single', q: 'Welche Datei darfst du weitergeben, zum Beispiel an GitHub oder den Hoster?',
+      options: [
+        { t: '<code>~/.ssh/id_ed25519.pub</code>', ok: true },
+        { t: '<code>~/.ssh/id_ed25519</code>' },
+        { t: 'Beide, sie gehören ja zusammen' },
+        { t: 'Keine, SSH-Schlüssel bleiben immer lokal' }],
+      why: 'Merksatz: <code>.pub</code> darf raus, die Datei ohne Endung bleibt bei dir. Der öffentliche Schlüssel funktioniert wie ein Schloss, das nur dein privater Schlüssel öffnet.' },
+
+    { topic: 'ssh', type: 'single', q: 'Was wird bei der Anmeldung per SSH-Schlüssel an den Server übertragen?',
+      options: [
+        { t: 'Eine Signatur, die dein privater Schlüssel erzeugt hat', ok: true },
+        { t: 'Der private Schlüssel, verschlüsselt' },
+        { t: 'Das Passwort deines Server-Users' },
+        { t: 'Die Passphrase deines Schlüssels' }],
+      why: 'Der Server stellt eine Aufgabe, dein Rechner signiert sie mit dem privaten Schlüssel, der Server prüft die Signatur mit dem öffentlichen Schlüssel. Der private Schlüssel verlässt deinen Rechner dabei nie.' },
+
+    { topic: 'ssh', type: 'order', q: 'Bring die Schritte der SSH-Anmeldung in die richtige Reihenfolge.',
+      items: ['Dein Rechner meldet sich mit seinem öffentlichen Schlüssel',
+              'Der Server findet ihn in <code>authorized_keys</code> und stellt eine Aufgabe',
+              'Dein Rechner signiert die Aufgabe mit dem privaten Schlüssel',
+              'Der Server prüft die Signatur und gibt den Zugang frei'],
+      why: 'Das ist das Challenge-Prinzip: beweisen, dass man den privaten Schlüssel hat, ohne ihn zu zeigen. Ein abgefangener Anmeldevorgang nützt einem Angreifer deshalb nichts.' },
+
+    { topic: 'ssh', type: 'single', q: 'Wo liegt dein öffentlicher Schlüssel auf dem Server, damit du dich anmelden kannst?',
+      options: [
+        { t: 'In <code>~/.ssh/authorized_keys</code> deines Server-Users', ok: true },
+        { t: 'In <code>~/.ssh/known_hosts</code>' },
+        { t: 'In <code>~/.ssh/config</code>' },
+        { t: 'Im Dokumentenstamm der Website' }],
+      why: '<code>authorized_keys</code> ist eine einfache Textdatei mit einem öffentlichen Schlüssel pro Zeile. Zugang entziehen heißt: Zeile löschen. Viele Hoster bieten dafür auch ein Menü im Kundenbereich.' },
+
+    { topic: 'ssh', type: 'single', q: 'Wofür ist <code>~/.ssh/known_hosts</code> auf deinem Rechner da?',
+      options: [
+        { t: 'Sie merkt sich den Fingerabdruck jedes Servers und schützt vor falschen Servern', ok: true },
+        { t: 'Sie listet alle Server, auf die du Zugriff hast, mit Passwort' },
+        { t: 'Sie enthält deine privaten Schlüssel' },
+        { t: 'Sie speichert die zuletzt ausgeführten Befehle' }],
+      why: 'Beim ersten Verbinden bestätigst du den Fingerabdruck mit <code>yes</code>. Danach prüft SSH bei jeder Verbindung, ob es wirklich derselbe Server ist.' },
+
+    { topic: 'ssh', type: 'single', q: 'SSH warnt beim Verbinden, dass sich der Fingerabdruck des Servers geändert hat. Was ist richtig?',
+      options: [
+        { t: 'Erst klären, warum (Umzug, Neuinstallation?), dann den alten Eintrag mit <code>ssh-keygen -R server</code> entfernen', ok: true },
+        { t: 'Sofort <code>known_hosts</code> komplett löschen' },
+        { t: 'Die Warnung ignorieren, das passiert öfter' },
+        { t: 'Einen neuen eigenen Schlüssel erzeugen' }],
+      why: 'Die Warnung kann bedeuten, dass sich jemand als dein Server ausgibt. Meist steckt ein Serverumzug dahinter, aber das muss man wissen, bevor man weitermacht.' },
+
+    { topic: 'ssh', type: 'single', q: 'Was macht <code>ssh -T git@github.com</code>?',
+      options: [
+        { t: 'Es testet, ob GitHub deinen Schlüssel akzeptiert, und nennt deinen Benutzernamen', ok: true },
+        { t: 'Es öffnet eine Shell auf den Servern von GitHub' },
+        { t: 'Es lädt deinen öffentlichen Schlüssel zu GitHub hoch' },
+        { t: 'Es klont alle deine Repositories' }],
+      why: 'Ein reiner Verbindungstest. GitHub begrüßt dich mit deinem Benutzernamen und trennt sofort wieder, weil es keinen Shell-Zugang gibt. So weißt du vor dem ersten <code>git push</code>, ob der Schlüssel funktioniert und beim richtigen Konto landet.' },
+
+    { topic: 'ssh', type: 'single', q: 'Welchen Schlüsseltyp solltest du für einen neuen Schlüssel wählen?',
+      options: [
+        { t: 'Ed25519: <code>ssh-keygen -t ed25519</code>', ok: true },
+        { t: 'Ein Passwort reicht, Schlüssel sind optional' },
+        { t: 'Den Schlüssel eines Kollegen kopieren' },
+        { t: 'Das spielt keine Rolle, alle sind gleich' }],
+      why: 'Ed25519 ist der aktuelle Standard: kurz, schnell und sicher. Ein bestehender Schlüssel kann weiter genutzt werden, aber nicht überschreiben, sonst sperrst du dich bei bestehenden Servern aus.' },
+
+    { topic: 'ssh', type: 'multi', q: 'Welche Aussagen zum Deploy-Schlüssel für GitHub Actions stimmen? (mehrere richtig)',
+      options: [
+        { t: 'Es ist ein eigenes Schlüsselpaar, nur für diesen Zweck', ok: true },
+        { t: 'Der private Teil wird als Secret bei GitHub hinterlegt', ok: true },
+        { t: 'Der öffentliche Teil kommt in <code>authorized_keys</code> auf dem Server', ok: true },
+        { t: 'Am besten nimmt man den eigenen persönlichen Schlüssel' },
+        { t: 'Der private Teil wird ins Repository committet, damit der Runner ihn findet' }],
+      why: 'Ein eigener Schlüssel hat nur einen Zweck, liegt nur an einer Stelle und lässt sich einzeln sperren. Er hat keine Passphrase, weil im automatischen Ablauf niemand sie eintippen könnte. Geschützt ist er über das verschlüsselte Secret.' },
+
+    { topic: 'ssh', type: 'multi', q: 'Was solltest du mit einem privaten Schlüssel niemals tun? (mehrere richtig)',
+      options: [
+        { t: 'Per Mail, Slack oder Chat verschicken', ok: true },
+        { t: 'Ins Git-Repository legen', ok: true },
+        { t: 'Mit dem ganzen Team teilen', ok: true },
+        { t: 'Mit einer Passphrase schützen' },
+        { t: 'Im <code>ssh-agent</code> entsperrt vorhalten' }],
+      why: 'Jede Person und jedes Gerät bekommt einen eigenen Schlüssel. Passphrase und Agent sind dagegen ausdrücklich empfohlen: Die Passphrase schützt bei Verlust, der Agent erspart das ständige Eintippen.' },
+
+    { topic: 'ssh', type: 'single', q: 'Dein Laptop wurde gestohlen. Was sperrt den Zugang mit dem dortigen Schlüssel?',
+      options: [
+        { t: 'Den öffentlichen Schlüssel bei GitHub und in allen <code>authorized_keys</code> löschen', ok: true },
+        { t: 'Auf einem neuen Rechner einen Schlüssel mit demselben Namen erzeugen' },
+        { t: 'Das GitHub-Passwort ändern, das reicht' },
+        { t: 'Nichts, ohne Passphrase ist der Schlüssel wertlos' }],
+      why: 'Ein Schlüssel ist so lange gültig, wie sein öffentlicher Teil irgendwo hinterlegt ist. Deshalb überall entfernen, wo er eingetragen war. Eine Passphrase verschafft Zeit, ersetzt das Sperren aber nicht.' },
+
+    // ---------- Deployment ----------
+    { topic: 'deploy', type: 'single', q: 'Was beschreibt Deployment am besten?',
+      options: [
+        { t: 'Einen geprüften Stand aus Git immer auf dieselbe Weise und ohne Handarbeit auf den Server bringen', ok: true },
+        { t: 'Geänderte Dateien per FTP auf den Server laden' },
+        { t: 'Ein Backup der Live-Seite anlegen' },
+        { t: 'TYPO3 auf eine neue Hauptversion aktualisieren' }],
+      why: 'Der Maßstab: reproduzierbar (läuft jedes Mal gleich), nachvollziehbar (du weißt, welcher Commit live ist) und umkehrbar (der alte Stand ist schnell zurück).' },
+
+    { topic: 'deploy', type: 'match', q: 'Ordne die Werkzeuge ihrer Aufgabe zu.',
+      pairs: [['Git', 'Was wird deployt?'],
+              ['GitHub Actions / GitLab CI', 'Wann und wo läuft es?'],
+              ['Deployer', 'Wie kommt es auf den Server?']],
+      why: 'Der Commit auf <code>main</code> ist der Stand. Die CI startet bei jedem Push einen Build-Rechner und ruft Deployer auf. Deployer lädt hoch, verknüpft, führt die TYPO3-Befehle aus und schaltet um.' },
+
+    { topic: 'deploy', type: 'order', q: 'Bring die Schritte eines TYPO3-Deployments in die richtige Reihenfolge.',
+      items: ['Projekt bauen: <code>composer install</code> auf dem Runner',
+              'Per rsync in einen neuen Release-Ordner hochladen',
+              'fileadmin, typo3temp und <code>additional.php</code> aus <code>shared/</code> verknüpfen',
+              'TYPO3-Befehle: Datenbank, Upgrades, Caches aufwärmen',
+              'Umschalten: <code>current</code> zeigt auf den neuen Release',
+              'Seiten-Cache leeren, alte Releases aufräumen'],
+      why: 'Die ersten vier Schritte laufen, während die Live-Seite unverändert weiterläuft. Erst wenn alles bereitliegt, wird umgeschaltet. Das dauert nur wenige Sekunden.' },
+
+    { topic: 'deploy', type: 'multi', q: 'Was liegt im Workshop-Projekt im Ordner <code>shared/</code> auf dem Server? (mehrere richtig)',
+      options: [
+        { t: '<code>public/fileadmin/</code>', ok: true },
+        { t: '<code>public/typo3temp/</code>', ok: true },
+        { t: '<code>config/system/additional.php</code>', ok: true },
+        { t: '<code>vendor/</code>' },
+        { t: 'Das Sitepackage' }],
+      why: 'In <code>shared/</code> liegt alles, was ein Deployment überleben muss: Redaktionsdaten und Zugangsdaten. Es wird in jeden Release nur verlinkt und nie überschrieben. Code und <code>vendor/</code> kommen mit jedem Release neu.' },
+
+    { topic: 'deploy', type: 'single', q: 'Was ist <code>current</code> im Deploy-Ordner?',
+      options: [
+        { t: 'Ein Symlink, der auf den aktiven Release zeigt', ok: true },
+        { t: 'Eine Kopie des neuesten Release' },
+        { t: 'Der Ordner mit den Redaktionsdaten' },
+        { t: 'Eine Logdatei des letzten Deployments' }],
+      why: 'Umschalten heißt: diesen Symlink auf den neuen Release umbiegen. Deshalb geht das in einem Moment und ohne halbfertigen Zwischenstand.' },
+
+    { topic: 'deploy', type: 'single', q: 'Worauf muss der Dokumentenstamm im Hosting zeigen?',
+      options: [
+        { t: '<code>current/public</code>', ok: true },
+        { t: '<code>releases/</code>' },
+        { t: '<code>shared/public</code>' },
+        { t: 'Den Ordner mit der höchsten Release-Nummer' }],
+      why: 'Der Webserver liefert immer aus dem aktiven Release aus. Ein falscher Dokumentenstamm ist eine der häufigsten Ursachen, wenn das erste Deployment nicht funktioniert.' },
+
+    { topic: 'deploy', type: 'single', q: 'Warum läuft <code>composer install</code> im Runner mit <code>--no-scripts</code>?',
+      options: [
+        { t: 'Die Composer-Scripts des Projekts brauchen eine TYPO3-Datenbank, die der Runner nicht hat', ok: true },
+        { t: 'Damit der Runner schneller fertig ist, sonst gibt es keinen Grund' },
+        { t: 'Weil GitHub Actions keine Scripts erlaubt' },
+        { t: 'Damit keine Entwicklungspakete installiert werden' }],
+      why: 'Im Workshop-Projekt leeren die Composer-Scripts Caches und aktualisieren das Datenbankschema. Das geht nur mit einer laufenden TYPO3-Instanz. Gegen Entwicklungspakete hilft <code>--no-dev</code>.' },
+
+    { topic: 'deploy', type: 'single', q: 'Während des Deployments schlägt <code>typo3 extension:setup</code> fehl. Was ist dann live?',
+      options: [
+        { t: 'Der alte Stand, weil die TYPO3-Befehle vor dem Umschalten laufen', ok: true },
+        { t: 'Eine halb aktualisierte Seite' },
+        { t: 'Gar nichts, die Seite ist offline' },
+        { t: 'Der neue Stand, nur ohne Extensions' }],
+      why: 'Bricht ein Schritt vor dem Umschalten ab, wird <code>current</code> nicht umgestellt. Die Live-Seite läuft einfach weiter. Genau das macht ein schiefgegangenes Deployment harmlos.' },
+
+    { topic: 'deploy', type: 'single', q: 'Was setzt ein Rollback zurück?',
+      options: [
+        { t: 'Nur den Code. Datenbankänderungen bleiben bestehen.', ok: true },
+        { t: 'Code und Datenbank' },
+        { t: 'Nur die Datenbank' },
+        { t: 'Den gesamten Server inklusive fileadmin' }],
+      why: 'Hat ein Update das Datenbankschema verändert, passt der alte Code eventuell nicht mehr dazu. Vor größeren Updates deshalb ein Datenbank-Backup anlegen.' },
+
+    { topic: 'deploy', type: 'single', q: 'Du hast per Rollback-Workflow den alten Stand wiederhergestellt. Was musst du zusätzlich tun?',
+      options: [
+        { t: 'Den Fehler mit <code>git revert</code> auch in <code>main</code> rückgängig machen', ok: true },
+        { t: 'Nichts, damit ist alles erledigt' },
+        { t: 'Den Server neu starten' },
+        { t: 'Den Deploy-Schlüssel neu erzeugen' }],
+      why: '<code>main</code> enthält nach dem Rollback weiter den fehlerhaften Stand. Der nächste Push würde ihn erneut deployen. <code>git revert</code> erzeugt einen Commit, der die Änderung rückgängig macht.' },
+
+    { topic: 'deploy', type: 'single', q: 'Warum kannst du im Workshop-Setup <code>dep rollback production</code> nicht einfach auf deinem Laptop eintippen?',
+      options: [
+        { t: 'Deployer ist nur im Runner installiert, nicht lokal', ok: true },
+        { t: 'Ein Rollback ist mit Deployer grundsätzlich nicht möglich' },
+        { t: 'Der Befehl funktioniert nur unter Windows' },
+        { t: 'GitHub verbietet Rollbacks' }],
+      why: 'Deshalb gibt es den Rollback als eigenen Workflow per Klick, bei GitHub über „Run workflow“, bei GitLab als manuellen Job. Wer möchte, kann Deployer auch lokal installieren.' },
+
+    { topic: 'deploy', type: 'match', q: 'Ordne die Begriffe von GitHub Actions ihrem Gegenstück in GitLab CI zu.',
+      pairs: [['<code>.github/workflows/*.yml</code>', '<code>.gitlab-ci.yml</code>'],
+              ['Secrets', 'CI/CD-Variablen'],
+              ['<code>concurrency</code>', '<code>resource_group</code>'],
+              ['„Run workflow“-Button', 'Manueller Job mit <code>when: manual</code>']],
+      why: 'Das Prinzip ist gleich, nur die Begriffe unterscheiden sich. Deployer und die <code>deploy.php</code> bleiben beim Wechsel unverändert.' },
+
+    { topic: 'deploy', type: 'single', q: 'Der Runner bricht beim Verbinden mit dem Server ab, weil er den Server nicht kennt. Was fehlt?',
+      options: [
+        { t: 'Der Eintrag in <code>known_hosts</code>, im Workflow per <code>ssh-keyscan</code>', ok: true },
+        { t: 'Ein Passwort für den Server-User' },
+        { t: 'Die Datei <code>composer.lock</code>' },
+        { t: 'Ein zweiter Branch' }],
+      why: 'Auch der Runner muss den Fingerabdruck des Servers kennen. <code>ssh-keyscan</code> trägt ihn im Workflow vor dem Deployment in <code>known_hosts</code> ein.' }
+  ];
+
+  /* ---------- Hilfsfunktionen ---------- */
+  var app = document.getElementById('app');
+  var STORE = 'wissenstest-t3crr26';
+  function load() { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; } }
+  function save(d) { try { localStorage.setItem(STORE, JSON.stringify(d)); } catch (e) { /* ohne Speicher weiter */ } }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function el(html) { var d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
+  function strip(h) { var d = document.createElement('div'); d.innerHTML = h; return d.textContent; }
+  var TYPE_LABEL = { single: 'Eine Antwort ist richtig', multi: 'Mehrere Antworten sind richtig', order: 'Reihenfolge herstellen', match: 'Zuordnen' };
+
+  var state = null;
+
+  /* ---------- Start ---------- */
+  function start() {
+    var best = load();
+    var counts = { all: Q.length };
+    Object.keys(TOPICS).forEach(function (k) { counts[k] = Q.filter(function (q) { return q.topic === k; }).length; });
+    function bestLine(k) { return best[k] != null ? '<span class="best">Bestes Ergebnis: ' + best[k] + ' %</span>' : ''; }
+    var html = '<section class="card"><h2>Was möchtest du üben?</h2>' +
+      '<p class="hint" style="margin-top:6px">Die Fragen und Antworten kommen jedes Mal in neuer Reihenfolge. Du kannst so oft üben, wie du willst.</p>' +
+      '<div class="topics">' +
+      Object.keys(TOPICS).map(function (k) {
+        return '<button type="button" class="topic" data-t="' + k + '"><strong>' + TOPICS[k] + '</strong><span>' + counts[k] + ' Fragen</span>' + bestLine(k) + '</button>';
+      }).join('') +
+      '<button type="button" class="topic all" data-t="all"><strong>Alles gemischt</strong><span>' + counts.all + ' Fragen aus allen drei Themen</span>' + bestLine('all') + '</button>' +
+      '</div><p class="hint">Tipp: Mit den Zifferntasten wählst du Antworten, mit Enter prüfst du und gehst weiter.</p></section>';
+    app.innerHTML = html;
+    app.querySelectorAll('.topic').forEach(function (b) {
+      b.addEventListener('click', function () { begin(b.getAttribute('data-t')); });
+    });
+    window.scrollTo(0, 0);
+  }
+
+  function begin(topic, onlyList) {
+    var list = onlyList || Q.filter(function (q) { return topic === 'all' || q.topic === topic; });
+    state = { topic: topic, list: shuffle(list), i: 0, results: [], retry: !!onlyList };
+    render();
+  }
+
+  /* ---------- Frage anzeigen ---------- */
+  function render() {
+    var q = state.list[state.i];
+    state.checked = false;
+    var n = state.i + 1, total = state.list.length;
+    var body = '';
+    if (q.type === 'single' || q.type === 'multi') {
+      state.opts = shuffle(q.options);
+      var inType = q.type === 'single' ? 'radio' : 'checkbox';
+      body = '<div class="options" role="' + (q.type === 'single' ? 'radiogroup' : 'group') + '">' + state.opts.map(function (o, k) {
+        return '<label class="opt"><input type="' + inType + '" name="a" value="' + k + '"><span>' + o.t + '</span><span class="mark" aria-hidden="true"></span></label>';
+      }).join('') + '</div>';
+    } else if (q.type === 'order') {
+      var idx = q.items.map(function (_, k) { return k; });
+      do { state.order = shuffle(idx); } while (state.order.every(function (v, k) { return v === k; }));
+      body = '<ol class="order"></ol>';
+    } else if (q.type === 'match') {
+      state.right = shuffle(q.pairs.map(function (p) { return p[1]; }));
+      body = '<div class="match">' + q.pairs.map(function (p, k) {
+        return '<div class="row"><label for="m' + k + '">' + p[0] + '</label><select id="m' + k + '"><option value="">Bitte wählen …</option>' +
+          state.right.map(function (r, j) { return '<option value="' + j + '">' + strip(r) + '</option>'; }).join('') + '</select></div>';
+      }).join('') + '</div>';
+    }
+    app.innerHTML =
+      '<div class="bar"><span>Frage ' + n + ' von ' + total + '</span><div class="progress" aria-hidden="true"><i style="width:' + ((n - 1) / total * 100) + '%"></i></div></div>' +
+      '<section class="card" id="qcard">' +
+      '<div class="qhead"><span class="tag">' + TOPICS[q.topic] + '</span><span class="qtype">' + TYPE_LABEL[q.type] + '</span></div>' +
+      '<h2 class="question" tabindex="-1" id="qtitle">' + q.q + '</h2>' + body +
+      '<div id="fb"></div>' +
+      '<div class="actions"><button type="button" class="btn" id="check" disabled>Antwort prüfen</button>' +
+      '<button type="button" class="btn ghost" id="quit">Abbrechen</button><span class="keys">Enter: prüfen / weiter</span></div>' +
+      '</section>';
+
+    if (q.type === 'order') drawOrder(q);
+    var checkBtn = document.getElementById('check');
+    app.querySelectorAll('.opt input').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        app.querySelectorAll('.opt').forEach(function (l) { l.classList.toggle('checked', l.querySelector('input').checked); });
+        checkBtn.disabled = !app.querySelector('.opt input:checked');
+      });
+    });
+    app.querySelectorAll('.match select').forEach(function (s) {
+      s.addEventListener('change', function () {
+        checkBtn.disabled = [].some.call(app.querySelectorAll('.match select'), function (x) { return x.value === ''; });
+      });
+    });
+    if (q.type === 'order') checkBtn.disabled = false;
+    checkBtn.addEventListener('click', function () { state.checked ? next() : check(); });
+    document.getElementById('quit').addEventListener('click', function () { if (confirm('Test abbrechen? Dein Fortschritt in dieser Runde geht verloren.')) start(); });
+    document.getElementById('qtitle').focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }
+
+  function drawOrder(q, result) {
+    var ol = app.querySelector('.order');
+    ol.innerHTML = state.order.map(function (v, k) {
+      var cls = result ? (v === k ? 'right' : 'wrong') : '';
+      var tail = result
+        ? (v === k ? '<span class="should">✓</span>' : '<span class="should">gehört an Stelle ' + (v + 1) + '</span>')
+        : '<span class="mv"><button type="button" data-k="' + k + '" data-d="-1" aria-label="Nach oben" ' + (k === 0 ? 'disabled' : '') + '>↑</button>' +
+          '<button type="button" data-k="' + k + '" data-d="1" aria-label="Nach unten" ' + (k === state.order.length - 1 ? 'disabled' : '') + '>↓</button></span>';
+      return '<li class="' + cls + '"><span class="num">' + (k + 1) + '</span><span class="txt">' + q.items[v] + '</span>' + tail + '</li>';
+    }).join('');
+    if (result) return;
+    ol.querySelectorAll('.mv button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var k = +b.getAttribute('data-k'), d = +b.getAttribute('data-d'), t = state.order[k];
+        state.order[k] = state.order[k + d]; state.order[k + d] = t;
+        drawOrder(q);
+        var again = ol.querySelector('button[data-k="' + (k + d) + '"][data-d="' + d + '"]') || ol.querySelector('button[data-k="' + (k + d) + '"]');
+        if (again) again.focus();
+      });
+    });
+  }
+
+  /* ---------- Auswerten ---------- */
+  function check() {
+    var q = state.list[state.i], score = 0, detail = '';
+    if (q.type === 'single' || q.type === 'multi') {
+      var labels = app.querySelectorAll('.opt'), good = 0, bad = 0, total = 0;
+      labels.forEach(function (l, k) {
+        var o = state.opts[k], on = l.querySelector('input').checked;
+        l.querySelector('input').disabled = true;
+        if (o.ok) total++;
+        if (on && o.ok) { l.classList.add('right'); l.querySelector('.mark').textContent = '✓'; good++; }
+        else if (on && !o.ok) { l.classList.add('wrong'); l.querySelector('.mark').textContent = '✕'; bad++; }
+        else if (!on && o.ok) { l.classList.add('missed'); l.querySelector('.mark').textContent = 'richtig'; }
+      });
+      score = (good === total && bad === 0) ? 1 : (q.type === 'multi' && good > 0 ? Math.max(0, (good - bad) / total) * 0.5 : 0);
+      if (q.type === 'multi' && score < 1) detail = good + ' von ' + total + ' richtigen Antworten gefunden' + (bad ? ', ' + bad + ' falsch angekreuzt' : '') + '.';
+      app.querySelector('.options').classList.add('locked');
+    } else if (q.type === 'order') {
+      var ok = state.order.filter(function (v, k) { return v === k; }).length;
+      score = ok === q.items.length ? 1 : 0;
+      if (!score) detail = ok + ' von ' + q.items.length + ' Schritten stehen an der richtigen Stelle.';
+      drawOrder(q, true);
+    } else if (q.type === 'match') {
+      var hits = 0;
+      app.querySelectorAll('.match .row').forEach(function (row, k) {
+        var sel = row.querySelector('select'), chosen = state.right[+sel.value], should = q.pairs[k][1];
+        sel.disabled = true;
+        if (chosen === should) { row.classList.add('right'); hits++; }
+        else { row.classList.add('wrong'); row.appendChild(el('<span class="should">Richtig: ' + strip(should) + '</span>')); }
+      });
+      score = hits === q.pairs.length ? 1 : 0;
+      if (!score) detail = hits + ' von ' + q.pairs.length + ' Zuordnungen stimmen.';
+    }
+    state.results.push({ q: q, score: score });
+    var cls = score === 1 ? 'ok' : (score > 0 ? 'part' : 'no');
+    var head = score === 1 ? 'Richtig!' : (score > 0 ? 'Teilweise richtig.' : 'Nicht ganz.');
+    document.getElementById('fb').innerHTML = '<div class="feedback ' + cls + '" role="status"><strong>' + head + (detail ? ' ' + detail : '') + '</strong><p>' + q.why + '</p></div>';
+    state.checked = true;
+    var btn = document.getElementById('check');
+    btn.textContent = state.i + 1 < state.list.length ? 'Nächste Frage' : 'Zum Ergebnis';
+    btn.disabled = false;
+    btn.focus({ preventScroll: true });
+    document.getElementById('fb').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function next() {
+    state.i++;
+    if (state.i < state.list.length) render(); else result();
+  }
+
+  /* ---------- Ergebnis ---------- */
+  function result() {
+    var r = state.results, sum = r.reduce(function (a, x) { return a + x.score; }, 0);
+    var pct = Math.round(sum / r.length * 100);
+    if (!state.retry) {
+      var best = load();
+      if (best[state.topic] == null || pct > best[state.topic]) { best[state.topic] = pct; save(best); }
+    }
+    var msg = pct >= 90 ? 'Hervorragend, du hast die Grundlagen sicher im Griff.'
+      : pct >= 70 ? 'Gut gemacht. Schau dir die offenen Punkte unten noch einmal an.'
+      : pct >= 50 ? 'Solide Basis. Mit einer zweiten Runde sitzt der Rest.'
+      : 'Ein Anfang ist gemacht. Die Erklärungen unten helfen beim nächsten Durchgang.';
+    var C = 2 * Math.PI * 50, off = C * (1 - pct / 100);
+    var per = Object.keys(TOPICS).map(function (k) {
+      var xs = r.filter(function (x) { return x.q.topic === k; });
+      if (!xs.length) return '';
+      var p = Math.round(xs.reduce(function (a, x) { return a + x.score; }, 0) / xs.length * 100);
+      return '<div class="line"><span>' + TOPICS[k] + '</span><span class="track"><i style="width:' + p + '%"></i></span><span class="val">' + p + ' %</span></div>';
+    }).join('');
+    var wrong = r.filter(function (x) { return x.score < 1; });
+    var review = wrong.map(function (x) {
+      return '<li><div class="q">' + x.q.q + '</div><div class="a">' + solution(x.q) + '</div></li>';
+    }).join('');
+    app.innerHTML =
+      '<section class="card"><div class="score">' +
+      '<svg class="ring" viewBox="0 0 120 120" role="img" aria-label="' + pct + ' Prozent"><circle cx="60" cy="60" r="50" fill="none" stroke="#e9e9e9" stroke-width="12"/>' +
+      '<circle cx="60" cy="60" r="50" fill="none" stroke="' + (pct >= 70 ? '#317b4d' : '#1e5fca') + '" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="' + off + '" transform="rotate(-90 60 60)"/>' +
+      '<text x="60" y="68" text-anchor="middle" font-size="26" font-weight="700" fill="#0d2957">' + pct + ' %</text></svg>' +
+      '<div><h2>' + (state.retry ? 'Wiederholung abgeschlossen' : 'Geschafft!') + '</h2><p>' + (Math.round(sum * 10) / 10).toLocaleString('de-DE') + ' von ' + r.length + ' Punkten. ' + msg + '</p></div></div>' +
+      (per ? '<div class="per">' + per + '</div>' : '') +
+      '<div class="actions">' +
+      (wrong.length ? '<button type="button" class="btn gold" id="retry">' + wrong.length + ' offene Fragen wiederholen</button>' : '') +
+      '<button type="button" class="btn" id="again">Neue Runde</button><button type="button" class="btn ghost" id="home">Themenauswahl</button></div></section>' +
+      (wrong.length ? '<section class="card"><h3>Zum Nachlesen</h3><ul class="review">' + review + '</ul></section>' : '');
+    var rb = document.getElementById('retry');
+    if (rb) rb.addEventListener('click', function () { begin(state.topic, wrong.map(function (x) { return x.q; })); });
+    document.getElementById('again').addEventListener('click', function () { begin(state.topic); });
+    document.getElementById('home').addEventListener('click', start);
+    window.scrollTo(0, 0);
+  }
+
+  function solution(q) {
+    var s;
+    if (q.type === 'single' || q.type === 'multi') s = q.options.filter(function (o) { return o.ok; }).map(function (o) { return o.t; }).join(' · ');
+    else if (q.type === 'order') s = q.items.map(function (t, k) { return (k + 1) + '. ' + t; }).join(' → ');
+    else s = q.pairs.map(function (p) { return p[0] + ' → ' + p[1]; }).join(' · ');
+    return '<strong>Richtig:</strong> ' + s + '<br>' + q.why;
+  }
+
+  /* ---------- Tastatur ---------- */
+  document.addEventListener('keydown', function (e) {
+    if (!state || !document.getElementById('check')) return;
+    if (e.target && e.target.tagName === 'SELECT') return;
+    if (e.key === 'Enter' && !(e.target && e.target.tagName === 'BUTTON')) {
+      var b = document.getElementById('check');
+      if (!b.disabled) { e.preventDefault(); b.click(); }
+      return;
+    }
+    if (state.checked) return;
+    var n = parseInt(e.key, 10);
+    var inputs = app.querySelectorAll('.opt input');
+    if (n >= 1 && n <= inputs.length) {
+      var inp = inputs[n - 1];
+      inp.checked = inp.type === 'radio' ? true : !inp.checked;
+      inp.dispatchEvent(new Event('change'));
+    }
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>
