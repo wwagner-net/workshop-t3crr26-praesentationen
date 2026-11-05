@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git verstehen · Workshop TYPO3camp RheinRuhr 2026</title>
+<meta name="robots" content="noindex">
+<style>
+:root {
+  --brand-dark:  oklch(0.279 0.084 264);   /* #0d2957 */
+  --brand-darker: #0a1f44;
+  --brand-blue:  oklch(0.512 0.181 264);   /* #1e5fca */
+  --brand-gold:  oklch(0.872 0.165 92);    /* #ffd700 */
+  --brand-green: oklch(0.504 0.097 152);   /* #317b4d */
+  --brand-gray:  oklch(0.93 0 0);          /* #e9e9e9 */
+  --foreground:  #000;
+  --border:      #d4d8e0;
+  --primary: var(--brand-blue);
+  --accent: var(--brand-gold);
+  --radius: 0.625rem;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: var(--font-sans);
+  color: var(--foreground);
+  background: var(--brand-darker);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Bühne ---------- */
+#deck { position: absolute; inset: 0; }
+.frame { position: absolute; overflow: hidden; display: none; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.frame.current { display: block; }
+.slide {
+  width: 1280px; height: 720px;
+  transform-origin: 0 0;
+  position: relative;
+  background: #fff;
+  padding: 64px 80px 72px;
+  display: flex; flex-direction: column;
+  line-height: 1.5;
+  font-size: 26px;
+}
+.slide.gray { background: var(--brand-gray); }
+.slide.dark, .slide.title {
+  background: linear-gradient(135deg, var(--brand-dark), var(--brand-darker));
+  color: #fff;
+}
+.slide.dark h2, .slide.title h1, .slide.dark h3 { color: #fff; }
+
+/* ---------- Typografie ---------- */
+h1, h2, h3 { color: var(--brand-dark); font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: 64px; line-height: 1.1; }
+h2 { font-size: 44px; line-height: 1.2; margin-bottom: 28px; }
+h3 { font-size: 28px; line-height: 1.3; margin-bottom: 10px; }
+p { margin: 0 0 16px; }
+.lead { font-size: 30px; line-height: 1.45; }
+.small { font-size: 21px; }
+.muted { color: #4a5568; }
+.dark .muted, .title .muted { color: rgba(255,255,255,.75); }
+strong { font-weight: 700; }
+.blue { color: var(--brand-blue); }
+.green { color: var(--brand-green); }
+.gold { color: var(--brand-gold); }
+ul.list { margin: 0; padding: 0; list-style: none; }
+ul.list li { position: relative; padding-left: 36px; margin-bottom: 14px; }
+ul.list li::before {
+  content: ""; position: absolute; left: 4px; top: .55em;
+  width: 12px; height: 12px; border-radius: 3px; background: var(--brand-blue);
+}
+.dark ul.list li::before { background: var(--brand-gold); }
+ul.check li::before {
+  content: "✓"; width: auto; height: auto; background: none; top: 0;
+  color: var(--brand-green); font-weight: 700;
+}
+ul.cross li::before {
+  content: "✕"; width: auto; height: auto; background: none; top: 0;
+  color: #b42318; font-weight: 700;
+}
+code, .mono { font-family: var(--font-mono); font-size: .88em; }
+:not(pre) > code {
+  background: rgba(30,95,202,.1); color: var(--brand-dark);
+  padding: 2px 8px; border-radius: 6px;
+}
+.dark :not(pre) > code { background: rgba(255,255,255,.14); color: #fff; }
+
+/* ---------- Komponenten ---------- */
+.eyebrow {
+  display: inline-block; font-size: 18px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--brand-blue); margin-bottom: 14px;
+}
+.dark .eyebrow, .title .eyebrow { color: var(--brand-gold); }
+.pill {
+  display: inline-block; padding: 6px 16px; border-radius: 999px;
+  font-size: 18px; font-weight: 600; background: var(--brand-gray); color: var(--brand-dark);
+}
+.dark .pill, .title .pill { background: rgba(255,255,255,.12); color: #fff; }
+.grid { display: grid; gap: 28px; }
+.cols2 { grid-template-columns: 1fr 1fr; }
+.cols3 { grid-template-columns: repeat(3, 1fr); }
+.cols4 { grid-template-columns: repeat(4, 1fr); }
+.card {
+  background: #fff; border: 1px solid var(--border); border-radius: 14px;
+  padding: 24px 26px; font-size: 22px; line-height: 1.45;
+}
+.gray .card { border-color: #cfd4dc; }
+.card h3 { font-size: 25px; }
+.card.accent { border-top: 6px solid var(--brand-blue); }
+.card.ok { border-top: 6px solid var(--brand-green); }
+.card.warn { border-top: 6px solid #b42318; }
+.card.goldline { border-top: 6px solid var(--brand-gold); }
+.dark .card { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.18); color: #fff; }
+.dark .card h3 { color: #fff; }
+.icon {
+  width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center;
+  background: rgba(30,95,202,.1); color: var(--brand-blue); font-size: 26px; font-weight: 700;
+  margin-bottom: 12px;
+}
+pre.cmd {
+  margin: 0; background: var(--brand-darker); color: #e8edf7; border-radius: 12px;
+  padding: 20px 24px; font-family: var(--font-mono); font-size: 20px; line-height: 1.55;
+  white-space: pre; overflow: hidden;
+}
+.dark pre.cmd { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.15); }
+pre.cmd .c { color: #8fa3c7; }     /* Kommentar */
+pre.cmd .p { color: var(--brand-gold); } /* Prompt */
+pre.cmd .k { color: #7fb0ff; }     /* Schlüsselwort */
+.statement {
+  font-size: 46px; line-height: 1.25; font-weight: 700; color: var(--brand-dark);
+  max-width: 1000px;
+}
+.dark .statement { color: #fff; }
+.callout {
+  border-left: 6px solid var(--brand-blue); background: rgba(30,95,202,.07);
+  padding: 16px 22px; border-radius: 0 12px 12px 0; font-size: 22px;
+}
+.callout.hl { border-color: var(--brand-gold); background: rgba(255,215,0,.12); }
+.dark .callout { background: rgba(255,255,255,.08); color: #fff; }
+.callout.warn { border-color: #b42318; background: rgba(180,35,24,.07); }
+.fill { flex: 1; min-height: 0; }
+.center { display: flex; align-items: center; justify-content: center; }
+.mt-auto { margin-top: auto; }
+.mt { margin-top: 24px; }
+svg text { font-family: var(--font-sans); }
+table.t { border-collapse: collapse; width: 100%; font-size: 21px; }
+table.t th, table.t td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.t th { color: var(--brand-dark); font-size: 18px; text-transform: uppercase; letter-spacing: .05em; }
+
+/* Fußzeile jeder Folie */
+.slide-foot {
+  position: absolute; left: 80px; right: 80px; bottom: 26px;
+  display: flex; justify-content: space-between; font-size: 15px; color: #6b7280;
+}
+.dark .slide-foot, .title .slide-foot { color: rgba(255,255,255,.55); }
+.slide-foot .brand::before {
+  content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+  background: var(--brand-gold); margin-right: 10px; vertical-align: 1px;
+}
+
+/* ---------- Sprechernotizen ---------- */
+.notes { display: none; }
+#notes-panel {
+  position: fixed; left: 0; right: 0; bottom: 0; max-height: 34vh; overflow: auto;
+  background: #fff; border-top: 4px solid var(--brand-gold);
+  padding: 16px 24px 20px; font-size: 17px; line-height: 1.6; display: none; z-index: 30;
+}
+#notes-panel h4 { margin: 0 0 6px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-blue); }
+#notes-panel ul { margin: 0; padding-left: 20px; }
+body.show-notes #notes-panel { display: block; }
+
+/* ---------- Bedienleiste ---------- */
+#bar {
+  position: fixed; right: 16px; top: 12px; z-index: 40; display: flex; gap: 6px;
+  opacity: .25; transition: opacity .2s;
+}
+#bar:hover, body.read #bar { opacity: 1; }
+#bar button {
+  font: 600 13px var(--font-sans); color: #fff; background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 7px 11px; cursor: pointer;
+}
+#bar button:hover { background: var(--brand-blue); }
+#bar button:focus-visible { outline: 2px solid var(--brand-gold); outline-offset: 2px; }
+#progress { position: fixed; left: 0; top: 0; height: 4px; background: var(--brand-gold); z-index: 41; transition: width .25s; }
+#help {
+  position: fixed; inset: 0; background: rgba(10,31,68,.88); color: #fff; z-index: 50;
+  display: none; align-items: center; justify-content: center; font-size: 18px;
+}
+#help.open { display: flex; }
+#help div { background: var(--brand-dark); border-radius: 16px; padding: 28px 36px; line-height: 2; }
+#help kbd { font-family: var(--font-mono); background: rgba(255,255,255,.15); padding: 2px 8px; border-radius: 6px; margin-right: 8px; }
+
+/* ---------- Lesemodus (Handout) ---------- */
+body.read { overflow: auto; background: #f3f4f6; }
+body.read #deck { position: static; padding: 64px 16px 40px; }
+body.read .frame { position: relative; display: block; margin: 0 auto; box-shadow: 0 4px 20px rgba(13,41,87,.12); border-radius: 6px; }
+body.read .frame + .notes-read { }
+.notes-read {
+  display: none; background: #fff; border: 1px solid var(--border); border-top: 4px solid var(--brand-gold);
+  border-radius: 0 0 10px 10px; margin: 0 auto 40px; padding: 16px 24px; font-size: 16px; line-height: 1.65;
+}
+body.read .notes-read { display: block; }
+.notes-read h4 { margin: 0 0 6px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-blue); }
+.notes-read ul { margin: 0; padding-left: 20px; }
+body.read #notes-panel { display: none !important; }
+
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body { background: #fff !important; overflow: visible !important; }
+  #bar, #progress, #notes-panel, #help { display: none !important; }
+  #deck { position: static !important; padding: 0 !important; }
+  .frame { position: relative !important; display: block !important; box-shadow: none !important; margin: 0 auto !important; break-inside: avoid; }
+  .notes-read { display: block !important; break-inside: avoid; border-radius: 0; margin-bottom: 0 !important; }
+  .page { break-after: page; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<nav id="bar" aria-label="Präsentation steuern">
+  <button type="button" id="b-prev" title="Zurück (←)">←</button>
+  <button type="button" id="b-next" title="Weiter (→)">→</button>
+  <button type="button" id="b-notes" title="Sprechernotizen (N)">Notizen</button>
+  <button type="button" id="b-read" title="Lesemodus / Handout (L)">Lesemodus</button>
+  <button type="button" id="b-full" title="Vollbild (F)">Vollbild</button>
+  <button type="button" id="b-help" title="Tastenkürzel (?)">?</button>
+</nav>
+
+<main id="deck">
+<!-- 1 Titel -->
+<section class="slide title">
+  <div class="fill" style="display:flex;flex-direction:column;justify-content:center">
+    <span class="eyebrow">Workshop · Teil Deployment · Grundlagen 1/3</span>
+    <h1>Git verstehen</h1>
+    <p class="lead muted" style="margin-top:22px;max-width:900px">Wie Versionskontrolle funktioniert und welche Rolle GitHub, GitLab und andere Anbieter dabei spielen.</p>
+    <div style="margin-top:30px;display:flex;gap:10px"><span class="pill">Commits</span><span class="pill">Branches</span><span class="pill">Remote</span><span class="pill">SaaS oder self-hosted</span></div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Kurzer Einstieg, kein Git-Kurs. Ziel: alle haben dasselbe Bild im Kopf, bevor wir am Nachmittag deployen.</li>
+    <li>Kurz fragen: Wer arbeitet schon täglich mit Git? Wer nur ab und zu? Wer noch gar nicht?</li>
+  </ul></aside>
+</section>
+
+<!-- 2 Problem -->
+<section class="slide">
+  <span class="eyebrow">Ausgangslage</span>
+  <h2>Kennst du das?</h2>
+  <div class="grid cols3 fill" style="align-content:start">
+    <div class="card warn"><div class="icon">📁</div><h3>Dateinamen als Versionen</h3><p class="mono small">sitepackage_final.zip<br>sitepackage_final_v2.zip<br>sitepackage_final_NEU.zip</p></div>
+    <div class="card warn"><div class="icon">?</div><h3>„Gestern lief es noch“</h3><p>Was genau hat sich seitdem geändert? Und wer hat es geändert?</p></div>
+    <div class="card warn"><div class="icon">⇄</div><h3>Zwei an einer Datei</h3><p>Kollegin und du ändert dasselbe Template. Wer zuletzt hochlädt, gewinnt.</p></div>
+  </div>
+  <p class="lead mt-auto"><strong class="blue">Git</strong> löst genau diese drei Probleme.</p>
+  <aside class="notes"><ul>
+    <li>Aus der Praxis: FTP-Upload, Backup als ZIP, Änderungen direkt auf dem Server.</li>
+    <li>Das funktioniert, solange einer allein arbeitet und nichts schiefgeht.</li>
+  </ul></aside>
+</section>
+
+<!-- 3 Was ist Git -->
+<section class="slide gray">
+  <span class="eyebrow">Begriff</span>
+  <h2>Was ist Git?</h2>
+  <div class="grid cols2 fill" style="align-content:start">
+    <div>
+      <p style="font-size:28px">Git ist ein <strong>verteiltes Versionskontrollsystem</strong>. Es merkt sich jeden gespeicherten Stand deines Projekts.</p>
+      <ul class="list small mt">
+        <li>2005 von Linus Torvalds für den Linux-Kernel entwickelt</li>
+        <li>Open Source, läuft auf macOS, Linux und Windows</li>
+        <li>Arbeitet <strong>lokal</strong>, ohne Server und ohne Internet</li>
+        <li>Jede Kopie eines Repositorys enthält die komplette Historie</li>
+      </ul>
+    </div>
+    <div class="card accent">
+      <h3>Drei Begriffe für heute</h3>
+      <p><strong>Repository</strong> („Repo“): dein Projektordner plus die komplette Historie (im versteckten Ordner <code>.git</code>).</p>
+      <p><strong>Commit</strong>: ein gespeicherter Stand mit Nachricht, Autor und Datum.</p>
+      <p style="margin:0"><strong>Branch</strong>: eine Entwicklungslinie, zum Beispiel <code>main</code>.</p>
+    </div>
+  </div>
+  <aside class="notes"><ul>
+    <li>„Verteilt“ heißt: Es gibt keinen zwingenden zentralen Server. Jede Kopie ist vollwertig.</li>
+    <li>Den Ordner <code>.git</code> nie von Hand anfassen oder löschen, sonst ist die Historie weg.</li>
+  </ul></aside>
+</section>
+
+<!-- 4 Drei Bereiche -->
+<section class="slide">
+  <span class="eyebrow">So funktioniert es</span>
+  <h2>Vom Bearbeiten zum Commit</h2>
+  <div class="fill center">
+    <svg viewBox="0 0 1120 330" width="1120" height="330" role="img" aria-label="Arbeitsverzeichnis, Staging-Bereich und Repository mit den Befehlen git add und git commit">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1e5fca"/></marker></defs>
+      <g>
+        <rect x="0" y="40" width="300" height="200" rx="16" fill="#fff" stroke="#d4d8e0" stroke-width="2"/>
+        <text x="150" y="88" text-anchor="middle" font-size="26" font-weight="700" fill="#0d2957">Arbeitsverzeichnis</text>
+        <text x="150" y="128" text-anchor="middle" font-size="20" fill="#4a5568">Hier bearbeitest du</text>
+        <text x="150" y="156" text-anchor="middle" font-size="20" fill="#4a5568">Templates, TypoScript,</text>
+        <text x="150" y="184" text-anchor="middle" font-size="20" fill="#4a5568">YAML wie gewohnt</text>
+      </g>
+      <g>
+        <rect x="410" y="40" width="300" height="200" rx="16" fill="#e9e9e9" stroke="#cfd4dc" stroke-width="2"/>
+        <text x="560" y="88" text-anchor="middle" font-size="26" font-weight="700" fill="#0d2957">Staging</text>
+        <text x="560" y="128" text-anchor="middle" font-size="20" fill="#4a5568">Du wählst aus, was in</text>
+        <text x="560" y="156" text-anchor="middle" font-size="20" fill="#4a5568">den nächsten Commit</text>
+        <text x="560" y="184" text-anchor="middle" font-size="20" fill="#4a5568">gehört</text>
+      </g>
+      <g>
+        <rect x="820" y="40" width="300" height="200" rx="16" fill="#0d2957"/>
+        <text x="970" y="88" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">Repository</text>
+        <text x="970" y="128" text-anchor="middle" font-size="20" fill="#dbe3f2">Gespeicherte Stände,</text>
+        <text x="970" y="156" text-anchor="middle" font-size="20" fill="#dbe3f2">dauerhaft und</text>
+        <text x="970" y="184" text-anchor="middle" font-size="20" fill="#dbe3f2">nachvollziehbar</text>
+      </g>
+      <line x1="308" y1="140" x2="400" y2="140" stroke="#1e5fca" stroke-width="4" marker-end="url(#ar)"/>
+      <line x1="718" y1="140" x2="810" y2="140" stroke="#1e5fca" stroke-width="4" marker-end="url(#ar)"/>
+      <text x="355" y="290" text-anchor="middle" font-size="22" font-family="ui-monospace, Menlo, monospace" fill="#1e5fca">git add</text>
+      <text x="765" y="290" text-anchor="middle" font-size="22" font-family="ui-monospace, Menlo, monospace" fill="#1e5fca">git commit</text>
+    </svg>
+  </div>
+  <p class="small muted">Mit <code>git status</code> siehst du jederzeit, was in welchem Bereich liegt.</p>
+  <aside class="notes"><ul>
+    <li>Der Staging-Bereich ist der Punkt, an dem viele stolpern. Er erlaubt kleine, saubere Commits: nur die Änderungen am Header, nicht gleich alles.</li>
+    <li>Faustregel: ein Commit = eine logische Änderung, mit einer Nachricht, die erklärt, warum.</li>
+  </ul></aside>
+</section>
+
+<!-- 5 Commits & Branches -->
+<section class="slide gray">
+  <span class="eyebrow">So funktioniert es</span>
+  <h2>Commits bilden eine Kette, Branches sind Zeiger</h2>
+  <div class="fill center">
+    <svg viewBox="0 0 1120 300" width="1120" height="300" role="img" aria-label="Commit-Kette auf main mit abzweigendem Feature-Branch, der wieder zusammengeführt wird">
+      <line x1="80" y1="190" x2="1000" y2="190" stroke="#0d2957" stroke-width="5"/>
+      <path d="M380 190 C 430 190, 430 80, 480 80 L 700 80 C 750 80, 750 190, 800 190" fill="none" stroke="#317b4d" stroke-width="5"/>
+      <g font-size="17" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">
+        <circle cx="80" cy="190" r="26" fill="#0d2957"/><text x="80" y="245" fill="#0d2957">a1f3</text>
+        <circle cx="230" cy="190" r="26" fill="#0d2957"/><text x="230" y="245" fill="#0d2957">7c20</text>
+        <circle cx="380" cy="190" r="26" fill="#0d2957"/><text x="380" y="245" fill="#0d2957">e91b</text>
+        <circle cx="560" cy="80" r="26" fill="#317b4d"/><text x="560" y="40" fill="#317b4d">4d8a</text>
+        <circle cx="680" cy="80" r="26" fill="#317b4d"/><text x="680" y="40" fill="#317b4d">b07e</text>
+        <circle cx="580" cy="190" r="26" fill="#0d2957"/><text x="580" y="245" fill="#0d2957">2f6c</text>
+        <circle cx="800" cy="190" r="30" fill="#1e5fca" stroke="#ffd700" stroke-width="5"/><text x="800" y="245" fill="#1e5fca">9a3d</text>
+      </g>
+      <g font-size="20" font-weight="700">
+        <rect x="880" y="160" width="110" height="40" rx="20" fill="#1e5fca"/><text x="935" y="187" text-anchor="middle" fill="#fff">main</text>
+        <rect x="740" y="30" width="170" height="40" rx="20" fill="#317b4d"/><text x="825" y="57" text-anchor="middle" fill="#fff">feature/header</text>
+      </g>
+      <text x="800" y="290" text-anchor="middle" font-size="19" fill="#4a5568">Merge: beide Linien zusammengeführt</text>
+    </svg>
+  </div>
+  <div class="grid cols3 small">
+    <div><strong>Commit</strong>: Schnappschuss mit eindeutiger ID (Hash) und Verweis auf den Vorgänger.</div>
+    <div><strong>Branch</strong>: ein beweglicher Zeiger auf einen Commit. Anlegen kostet nichts.</div>
+    <div><strong>Merge</strong>: führt eine Linie wieder in <code>main</code> zurück.</div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Die Hashes sind in echt 40 Zeichen lang, Git zeigt meist die ersten 7.</li>
+    <li>Typischer Ablauf: neues Feature im eigenen Branch, testen, dann in <code>main</code> mergen. <code>main</code> bleibt immer deploybar. Das wird am Nachmittag wichtig.</li>
+  </ul></aside>
+</section>
+
+<!-- 6 Lokal & Remote -->
+<section class="slide">
+  <span class="eyebrow">Zusammenarbeit</span>
+  <h2>Lokal und Remote</h2>
+  <div class="fill center">
+    <svg viewBox="0 0 1120 330" width="1120" height="330" role="img" aria-label="Zwei lokale Repositories tauschen über ein Remote-Repository Commits aus">
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1e5fca"/></marker></defs>
+      <rect x="400" y="20" width="320" height="120" rx="18" fill="#0d2957"/>
+      <text x="560" y="70" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">Remote-Repository</text>
+      <text x="560" y="105" text-anchor="middle" font-size="19" fill="#ffd700">z. B. auf GitHub oder GitLab</text>
+      <rect x="20" y="210" width="300" height="100" rx="16" fill="#fff" stroke="#d4d8e0" stroke-width="2"/>
+      <text x="170" y="252" text-anchor="middle" font-size="23" font-weight="700" fill="#0d2957">Dein Laptop</text>
+      <text x="170" y="284" text-anchor="middle" font-size="18" fill="#4a5568">lokales Repo (DDEV)</text>
+      <rect x="800" y="210" width="300" height="100" rx="16" fill="#fff" stroke="#d4d8e0" stroke-width="2"/>
+      <text x="950" y="252" text-anchor="middle" font-size="23" font-weight="700" fill="#0d2957">Kollegin</text>
+      <text x="950" y="284" text-anchor="middle" font-size="18" fill="#4a5568">eigenes lokales Repo</text>
+      <line x1="260" y1="205" x2="420" y2="148" stroke="#1e5fca" stroke-width="4" marker-end="url(#ar2)"/>
+      <line x1="460" y1="150" x2="300" y2="210" stroke="#317b4d" stroke-width="4" stroke-dasharray="8 6" marker-end="url(#ar2)"/>
+      <line x1="860" y1="205" x2="700" y2="148" stroke="#1e5fca" stroke-width="4" marker-end="url(#ar2)"/>
+      <line x1="660" y1="150" x2="820" y2="210" stroke="#317b4d" stroke-width="4" stroke-dasharray="8 6" marker-end="url(#ar2)"/>
+      <text x="300" y="168" text-anchor="end" font-size="20" font-family="ui-monospace, Menlo, monospace" fill="#1e5fca">push</text>
+      <text x="400" y="205" text-anchor="start" font-size="20" font-family="ui-monospace, Menlo, monospace" fill="#317b4d">pull</text>
+      <text x="820" y="168" text-anchor="start" font-size="20" font-family="ui-monospace, Menlo, monospace" fill="#1e5fca">push</text>
+      <text x="720" y="205" text-anchor="end" font-size="20" font-family="ui-monospace, Menlo, monospace" fill="#317b4d">pull</text>
+    </svg>
+  </div>
+  <div class="grid cols3 small">
+    <div><code>git clone</code> holt eine komplette Kopie vom Remote.</div>
+    <div><code>git push</code> schickt deine Commits zum Remote.</div>
+    <div><code>git pull</code> holt neue Commits der anderen ab.</div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Das Remote ist technisch nur ein weiteres Repository. Es dient als gemeinsamer Treffpunkt.</li>
+    <li>Ausblick: Am Nachmittag ist der <code>push</code> auf <code>main</code> der Auslöser für das Deployment.</li>
+  </ul></aside>
+</section>
+
+<!-- 7 Befehle -->
+<section class="slide dark">
+  <span class="eyebrow">Spickzettel</span>
+  <h2>Die Befehle, die du heute brauchst</h2>
+  <div class="grid cols2 fill" style="align-content:start;grid-template-columns:1.3fr 1fr;gap:24px">
+<pre class="cmd" style="font-size:16.5px;padding:18px 20px"><span class="c"># einmalig einrichten</span>
+<span class="p">$</span> git config --global user.name "Vorname Name"
+<span class="p">$</span> git config --global user.email "du@example.com"
+
+<span class="c"># Projekt unter Versionskontrolle stellen</span>
+<span class="p">$</span> git init
+<span class="p">$</span> git remote add origin git@github.com:du/projekt.git</pre>
+<pre class="cmd" style="font-size:16.5px;padding:18px 20px"><span class="c"># der tägliche Kreislauf</span>
+<span class="p">$</span> git status
+<span class="p">$</span> git add packages/sitepackage
+<span class="p">$</span> git commit -m "Header-Navigation ergänzt"
+<span class="p">$</span> git push
+
+<span class="c"># Historie ansehen</span>
+<span class="p">$</span> git log --oneline</pre>
+  </div>
+  <p class="small muted">Branches: <code>git switch -c feature/header</code> legt einen an, <code>git switch main</code> wechselt zurück.</p>
+  <aside class="notes"><ul>
+    <li><code>user.name</code> und <code>user.email</code> stehen später in jedem Commit. Die E-Mail sollte zum GitHub-Konto passen.</li>
+    <li>Die Remote-Adresse beginnt mit <code>git@</code>: Das ist der Zugang per SSH. Wie der funktioniert, kommt in der nächsten Präsentation.</li>
+    <li><strong>Unbedingt erwähnen:</strong> <code>git checkout main</code> und <code>git checkout -b feature/header</code> machen genau dasselbe wie <code>switch</code> bzw. <code>switch -c</code>. <code>checkout</code> ist der ältere Befehl, nicht veraltet und in vielen Anleitungen zu sehen. <code>switch</code> gibt es seit Git 2.23 und kann nur Branches wechseln. Damit ist ausgeschlossen, dass man aus Versehen Dateiänderungen verwirft, wie es bei <code>git checkout -- datei</code> passiert.</li>
+    <li>Wer lieber klickt: PhpStorm, VS Code oder GitHub Desktop machen dasselbe mit Oberfläche.</li>
+  </ul></aside>
+</section>
+
+<!-- 8 TYPO3-Repo -->
+<section class="slide">
+  <span class="eyebrow">TYPO3-Praxis</span>
+  <h2 style="margin-bottom:22px">Was gehört in dein TYPO3-Repository?</h2>
+  <div class="grid cols3" style="grid-template-columns:1fr 1fr 0.9fr;gap:24px;align-items:start">
+    <div class="card ok" style="font-size:20px;padding:20px 22px">
+      <h3>Rein damit</h3>
+      <ul class="list check" style="font-size:20px">
+        <li><code>composer.json</code>, <code>composer.lock</code></li>
+        <li><code>packages/</code> (Sitepackage)</li>
+        <li><code>config/</code></li>
+        <li><code>.ddev/</code></li>
+        <li><code>deploy.php</code>, <code>.hosts.yml</code>, Workflow</li>
+      </ul>
+    </div>
+    <div class="card warn" style="font-size:20px;padding:20px 22px">
+      <h3>Draußen lassen</h3>
+      <ul class="list cross" style="font-size:20px">
+        <li><code>vendor/</code></li>
+        <li><code>public/</code> außer <code>.htaccess</code></li>
+        <li><code>var/</code></li>
+        <li><code>.env</code>, Datenbank-Dumps</li>
+      </ul>
+    </div>
+<pre class="cmd" style="font-size:18px;padding:20px 22px"><span class="c"># .gitignore (Auszug)</span>
+/vendor
+/var/*
+!/var/labels
+/public/*
+!/public/.htaccess
+.env
+database.sql</pre>
+  </div>
+  <div class="callout warn small mt-auto">Server-Passwörter und API-Keys nie ins Repository. Die Historie vergisst nichts.</div>
+  <aside class="notes"><ul>
+    <li>Grundregel: Code und Konfiguration rein, alles Erzeugte und alle Inhalte raus.</li>
+    <li><code>composer.lock</code> unbedingt committen: Nur so landen auf dem Server exakt dieselben Versionen wie lokal.</li>
+    <li><code>public/*</code> wird komplett ignoriert, weil in TYPO3 v14 fast alles darin erzeugt wird oder Inhalt ist: <code>fileadmin</code>, <code>typo3temp</code>, <code>_assets</code>, <code>index.php</code>. Nur die <code>.htaccess</code> wird mit <code>!</code> wieder aufgenommen.</li>
+    <li>Die <code>.gitignore</code> ist ein Auszug aus dem Workshop-Projekt.</li>
+    <li>Die Server-Zugangsdaten stehen in der <code>additional.php</code> auf dem Server (in <code>shared/</code>) und kommen nie aus dem Repository. Mehr dazu in der Deployment-Präsentation.</li>
+  </ul></aside>
+</section>
+
+<!-- 9 Git ist nicht GitHub -->
+<section class="slide gray">
+  <span class="eyebrow">Einordnung</span>
+  <h2>Git ist nicht GitHub</h2>
+  <p class="lead" style="max-width:1050px"><strong>Git</strong> ist das Werkzeug auf deinem Rechner. <strong>GitHub, GitLab &amp; Co.</strong> sind Plattformen, die Remote-Repositories hosten und viel drumherum bieten.</p>
+  <div class="grid cols4 fill mt" style="align-content:start">
+    <div class="card accent"><div class="icon">⌂</div><h3>Hosting</h3><p>Das zentrale Repo, auf das alle pushen.</p></div>
+    <div class="card accent"><div class="icon">✓</div><h3>Review</h3><p>Pull Requests (GitHub) bzw. Merge Requests (GitLab) mit Kommentaren.</p></div>
+    <div class="card accent"><div class="icon">⚙</div><h3>Automatisierung</h3><p>GitHub Actions, GitLab CI: Tests und Deployment bei jedem Push.</p></div>
+    <div class="card accent"><div class="icon">🔑</div><h3>Zugänge</h3><p>Teams, Rechte, SSH-Schlüssel, Secrets für den Server.</p></div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Wichtig fürs Verständnis: Du kannst den Anbieter wechseln, ohne Git zu wechseln. Die Historie zieht einfach mit (<code>git push</code> zum neuen Remote).</li>
+    <li>Was nicht einfach mitzieht: Issues, Reviews und vor allem die CI-Konfiguration. Die ist anbieterspezifisch.</li>
+  </ul></aside>
+</section>
+
+<!-- 10 Anbieter -->
+<section class="slide">
+  <span class="eyebrow">Anbieter</span>
+  <h2>Die bekanntesten Plattformen</h2>
+  <table class="t" style="font-size:19px">
+    <thead><tr><th>Plattform</th><th>Betrieb</th><th>Gut zu wissen</th></tr></thead>
+    <tbody>
+      <tr><td><strong>GitHub</strong></td><td>SaaS; Enterprise Server zum Selbstbetrieb</td><td>Größte Plattform, gehört zu Microsoft. Automatisierung mit GitHub Actions.</td></tr>
+      <tr><td><strong>GitLab</strong></td><td>SaaS (gitlab.com) oder self-hosted</td><td>Open-Core, im Agenturumfeld oft selbst gehostet. Automatisierung mit GitLab CI.</td></tr>
+      <tr><td><strong>Bitbucket</strong></td><td>SaaS; Data Center zum Selbstbetrieb</td><td>Von Atlassian, praktisch in Kombination mit Jira.</td></tr>
+      <tr><td><strong>Codeberg</strong></td><td>SaaS, gemeinnützig</td><td>Verein mit Sitz in Berlin, basiert auf Forgejo.</td></tr>
+      <tr><td style="white-space:nowrap"><strong>Gitea / Forgejo</strong></td><td>self-hosted</td><td>Schlank, Open Source, läuft auch auf kleinen Servern.</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted mt-auto">Für Git selbst ist es egal, wo das Remote liegt. Der Unterschied liegt in Komfort, Datenschutz, Kosten und Automatisierung.</p>
+  <aside class="notes"><ul>
+    <li>Im Workshop nutzen wir GitHub, weil fast alle schon ein Konto haben und Actions im Rahmen kostenlos ist.</li>
+    <li>Der Ablauf lässt sich auf GitLab CI übertragen. Das Prinzip ist dasselbe, nur die Konfigurationsdatei sieht anders aus.</li>
+  </ul></aside>
+</section>
+
+<!-- 11 SaaS vs self-hosted -->
+<section class="slide gray">
+  <span class="eyebrow">Entscheidung</span>
+  <h2>SaaS oder self-hosted?</h2>
+  <div class="grid cols2 fill" style="align-content:start">
+    <div class="card accent">
+      <h3>SaaS (GitHub, gitlab.com, Bitbucket …)</h3>
+      <ul class="list check small">
+        <li>Sofort startklar, keine Wartung</li>
+        <li>Fertige Build-Server (Runner) inklusive</li>
+        <li>Große Community, viele fertige Bausteine</li>
+      </ul>
+      <ul class="list cross small" style="margin-top:6px">
+        <li>Code liegt beim Anbieter, oft außerhalb der EU</li>
+        <li>Kostenlose Kontingente sind begrenzt</li>
+      </ul>
+    </div>
+    <div class="card goldline">
+      <h3>Self-hosted (GitLab, Gitea, Forgejo …)</h3>
+      <ul class="list check small">
+        <li>Volle Kontrolle über Daten und Standort</li>
+        <li>Erfüllt strenge Kunden- oder Behördenvorgaben</li>
+        <li>Keine Abhängigkeit von Preisen und Konditionen</li>
+      </ul>
+      <ul class="list cross small" style="margin-top:6px">
+        <li>Updates, Backups, Sicherheit liegen bei dir</li>
+        <li>Eigene Runner für die Automatisierung nötig</li>
+      </ul>
+    </div>
+  </div>
+  <p class="small mt"><strong>Faustregel:</strong> Ohne besondere Vorgaben ist SaaS der einfachere Start. Verlangt der Kunde Daten in eigener Hand, wird es self-hosted.</p>
+  <aside class="notes"><ul>
+    <li>Fragen, die du dir stellen kannst: Gibt es Vorgaben vom Kunden (öffentliche Hand, Gesundheit)? Wer kümmert sich um Updates? Wie viele Build-Minuten brauche ich?</li>
+    <li>Mischformen gibt es auch, etwa gitlab.com mit eigenen Runnern im eigenen Rechenzentrum.</li>
+  </ul></aside>
+</section>
+
+<!-- 12 Fazit -->
+<section class="slide dark">
+  <span class="eyebrow">Zusammenfassung</span>
+  <h2>Das nimmst du mit</h2>
+  <div class="grid cols2 fill" style="align-content:start">
+    <ul class="list">
+      <li>Git speichert jeden Stand deines Projekts als <strong>Commit</strong>.</li>
+      <li><strong>Branches</strong> trennen Arbeit, die noch nicht fertig ist.</li>
+      <li>Das <strong>Remote</strong> ist der gemeinsame Treffpunkt für alle.</li>
+      <li>GitHub, GitLab &amp; Co. hosten das Remote und automatisieren Abläufe.</li>
+    </ul>
+    <div class="card goldline">
+      <h3>Gleich im Workshop</h3>
+      <p>Dein TYPO3-Projekt kommt in ein GitHub-Repository. Danach löst jeder <code>git push</code> auf <code>main</code> das Deployment aus.</p>
+      <p class="gold" style="margin:0;font-weight:700">Nächstes Thema: SSH-Schlüssel</p>
+    </div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Kurz Raum für Fragen lassen.</li>
+    <li>Überleitung: Damit GitHub weiß, dass du pushen darfst, und damit GitHub später auf den Server darf, brauchen wir SSH-Schlüssel.</li>
+  </ul></aside>
+</section>
+
+</main>
+
+<div id="notes-panel" aria-live="polite"></div>
+<div id="help" role="dialog" aria-label="Tastenkürzel"><div>
+  <kbd>→</kbd><kbd>Leertaste</kbd> nächste Folie<br>
+  <kbd>←</kbd> vorherige Folie<br>
+  <kbd>Pos1</kbd><kbd>Ende</kbd> erste / letzte Folie<br>
+  <kbd>N</kbd> Sprechernotizen ein/aus<br>
+  <kbd>L</kbd> Lesemodus (alle Folien mit Notizen, druckbar)<br>
+  <kbd>F</kbd> Vollbild<br>
+  <kbd>Esc</kbd> Hilfe schließen
+</div></div>
+
+<script>
+(function () {
+  var FOOT = "TYPO3camp RheinRuhr 2026 \u00b7 Workshop TYPO3 v14 \u00b7 Wolfgang Wagner";
+  var deck = document.getElementById('deck');
+  var slides = Array.prototype.slice.call(deck.querySelectorAll('.slide'));
+  var frames = [];
+  var total = slides.length;
+
+  slides.forEach(function (s, i) {
+    var frame = document.createElement('div');
+    frame.className = 'frame';
+    s.parentNode.insertBefore(frame, s);
+    frame.appendChild(s);
+    var foot = document.createElement('div');
+    foot.className = 'slide-foot';
+    foot.innerHTML = '<span class="brand">' + FOOT + '</span><span>' + (i + 1) + ' / ' + total + '</span>';
+    s.appendChild(foot);
+    var notes = s.querySelector('.notes');
+    var wrap = document.createElement('div');
+    wrap.className = 'page';
+    frame.parentNode.insertBefore(wrap, frame);
+    wrap.appendChild(frame);
+    if (notes) {
+      var nr = document.createElement('div');
+      nr.className = 'notes-read';
+      nr.innerHTML = '<h4>Notizen zu Folie ' + (i + 1) + '</h4>' + notes.innerHTML;
+      wrap.appendChild(nr);
+    }
+    frames.push(frame);
+  });
+
+  var cur = 0;
+  var fromHash = parseInt((location.hash || '').replace('#', ''), 10);
+  if (fromHash >= 1 && fromHash <= total) cur = fromHash - 1;
+
+  function layout(printScale) {
+    var read = document.body.classList.contains('read') || printScale;
+    var scale;
+    if (printScale) scale = printScale;
+    else if (read) scale = Math.min(1, (window.innerWidth - 32) / 1280);
+    else {
+      var notesH = document.body.classList.contains('show-notes') ? document.getElementById('notes-panel').offsetHeight : 0;
+      scale = Math.min(window.innerWidth / 1280, (window.innerHeight - notesH) / 720);
+    }
+    frames.forEach(function (f) {
+      f.style.width = (1280 * scale) + 'px';
+      f.style.height = (720 * scale) + 'px';
+      f.firstChild.style.transform = 'scale(' + scale + ')';
+      if (!read) {
+        var notesH2 = document.body.classList.contains('show-notes') ? document.getElementById('notes-panel').offsetHeight : 0;
+        f.style.left = ((window.innerWidth - 1280 * scale) / 2) + 'px';
+        f.style.top = ((window.innerHeight - notesH2 - 720 * scale) / 2) + 'px';
+      } else { f.style.left = ''; f.style.top = ''; }
+    });
+    document.querySelectorAll('.notes-read').forEach(function (n) { n.style.width = (1280 * scale) + 'px'; });
+  }
+
+  function show(i) {
+    cur = Math.max(0, Math.min(total - 1, i));
+    frames.forEach(function (f, k) { f.classList.toggle('current', k === cur); });
+    var n = slides[cur].querySelector('.notes');
+    document.getElementById('notes-panel').innerHTML = '<h4>Notizen · Folie ' + (cur + 1) + ' / ' + total + '</h4>' + (n ? n.innerHTML : '<p>Keine Notizen.</p>');
+    document.getElementById('progress').style.width = ((cur + 1) / total * 100) + '%';
+    if (history.replaceState) history.replaceState(null, '', '#' + (cur + 1));
+    layout();
+  }
+
+  function toggle(cls) { document.body.classList.toggle(cls); show(cur); if (cls === 'read' && document.body.classList.contains('read')) frames[cur].scrollIntoView(); }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key;
+    var help = document.getElementById('help');
+    if (k === 'Escape') { help.classList.remove('open'); return; }
+    if (k === '?') { help.classList.toggle('open'); return; }
+    if (k === 'n' || k === 'N') { toggle('show-notes'); return; }
+    if (k === 'l' || k === 'L') { toggle('read'); return; }
+    if (k === 'f' || k === 'F') { if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); else document.exitFullscreen(); return; }
+    if (document.body.classList.contains('read')) return;
+    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); show(cur + 1); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); show(cur - 1); }
+    else if (k === 'Home') show(0);
+    else if (k === 'End') show(total - 1);
+  });
+  document.getElementById('b-prev').onclick = function () { show(cur - 1); };
+  document.getElementById('b-next').onclick = function () { show(cur + 1); };
+  document.getElementById('b-notes').onclick = function () { toggle('show-notes'); };
+  document.getElementById('b-read').onclick = function () { toggle('read'); };
+  document.getElementById('b-full').onclick = function () { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); };
+  document.getElementById('b-help').onclick = function () { document.getElementById('help').classList.toggle('open'); };
+
+  var tx = null;
+  deck.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  deck.addEventListener('touchend', function (e) {
+    if (tx === null || document.body.classList.contains('read')) return;
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) show(cur + (dx < 0 ? 1 : -1));
+    tx = null;
+  });
+
+  window.addEventListener('resize', function () { layout(); });
+  window.addEventListener('beforeprint', function () { layout(1000 / 1280); });
+  window.addEventListener('afterprint', function () { layout(); });
+  show(cur);
+})();
+</script>
+</body>
+</html>

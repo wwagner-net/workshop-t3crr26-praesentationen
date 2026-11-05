@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deployment verstehen · Workshop TYPO3camp RheinRuhr 2026</title>
+<meta name="robots" content="noindex">
+<style>
+:root {
+  --brand-dark:  oklch(0.279 0.084 264);   /* #0d2957 */
+  --brand-darker: #0a1f44;
+  --brand-blue:  oklch(0.512 0.181 264);   /* #1e5fca */
+  --brand-gold:  oklch(0.872 0.165 92);    /* #ffd700 */
+  --brand-green: oklch(0.504 0.097 152);   /* #317b4d */
+  --brand-gray:  oklch(0.93 0 0);          /* #e9e9e9 */
+  --foreground:  #000;
+  --border:      #d4d8e0;
+  --primary: var(--brand-blue);
+  --accent: var(--brand-gold);
+  --radius: 0.625rem;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: var(--font-sans);
+  color: var(--foreground);
+  background: var(--brand-darker);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Bühne ---------- */
+#deck { position: absolute; inset: 0; }
+.frame { position: absolute; overflow: hidden; display: none; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.frame.current { display: block; }
+.slide {
+  width: 1280px; height: 720px;
+  transform-origin: 0 0;
+  position: relative;
+  background: #fff;
+  padding: 64px 80px 72px;
+  display: flex; flex-direction: column;
+  line-height: 1.5;
+  font-size: 26px;
+}
+.slide.gray { background: var(--brand-gray); }
+.slide.dark, .slide.title {
+  background: linear-gradient(135deg, var(--brand-dark), var(--brand-darker));
+  color: #fff;
+}
+.slide.dark h2, .slide.title h1, .slide.dark h3 { color: #fff; }
+
+/* ---------- Typografie ---------- */
+h1, h2, h3 { color: var(--brand-dark); font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: 64px; line-height: 1.1; }
+h2 { font-size: 44px; line-height: 1.2; margin-bottom: 28px; }
+h3 { font-size: 28px; line-height: 1.3; margin-bottom: 10px; }
+p { margin: 0 0 16px; }
+.lead { font-size: 30px; line-height: 1.45; }
+.small { font-size: 21px; }
+.muted { color: #4a5568; }
+.dark .muted, .title .muted { color: rgba(255,255,255,.75); }
+strong { font-weight: 700; }
+.blue { color: var(--brand-blue); }
+.green { color: var(--brand-green); }
+.gold { color: var(--brand-gold); }
+ul.list { margin: 0; padding: 0; list-style: none; }
+ul.list li { position: relative; padding-left: 36px; margin-bottom: 14px; }
+ul.list li::before {
+  content: ""; position: absolute; left: 4px; top: .55em;
+  width: 12px; height: 12px; border-radius: 3px; background: var(--brand-blue);
+}
+.dark ul.list li::before { background: var(--brand-gold); }
+ul.check li::before {
+  content: "✓"; width: auto; height: auto; background: none; top: 0;
+  color: var(--brand-green); font-weight: 700;
+}
+ul.cross li::before {
+  content: "✕"; width: auto; height: auto; background: none; top: 0;
+  color: #b42318; font-weight: 700;
+}
+code, .mono { font-family: var(--font-mono); font-size: .88em; }
+:not(pre) > code {
+  background: rgba(30,95,202,.1); color: var(--brand-dark);
+  padding: 2px 8px; border-radius: 6px;
+}
+.dark :not(pre) > code { background: rgba(255,255,255,.14); color: #fff; }
+
+/* ---------- Komponenten ---------- */
+.eyebrow {
+  display: inline-block; font-size: 18px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--brand-blue); margin-bottom: 14px;
+}
+.dark .eyebrow, .title .eyebrow { color: var(--brand-gold); }
+.pill {
+  display: inline-block; padding: 6px 16px; border-radius: 999px;
+  font-size: 18px; font-weight: 600; background: var(--brand-gray); color: var(--brand-dark);
+}
+.dark .pill, .title .pill { background: rgba(255,255,255,.12); color: #fff; }
+.grid { display: grid; gap: 28px; }
+.cols2 { grid-template-columns: 1fr 1fr; }
+.cols3 { grid-template-columns: repeat(3, 1fr); }
+.cols4 { grid-template-columns: repeat(4, 1fr); }
+.card {
+  background: #fff; border: 1px solid var(--border); border-radius: 14px;
+  padding: 24px 26px; font-size: 22px; line-height: 1.45;
+}
+.gray .card { border-color: #cfd4dc; }
+.card h3 { font-size: 25px; }
+.card.accent { border-top: 6px solid var(--brand-blue); }
+.card.ok { border-top: 6px solid var(--brand-green); }
+.card.warn { border-top: 6px solid #b42318; }
+.card.goldline { border-top: 6px solid var(--brand-gold); }
+.dark .card { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.18); color: #fff; }
+.dark .card h3 { color: #fff; }
+.icon {
+  width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center;
+  background: rgba(30,95,202,.1); color: var(--brand-blue); font-size: 26px; font-weight: 700;
+  margin-bottom: 12px;
+}
+pre.cmd {
+  margin: 0; background: var(--brand-darker); color: #e8edf7; border-radius: 12px;
+  padding: 20px 24px; font-family: var(--font-mono); font-size: 20px; line-height: 1.55;
+  white-space: pre; overflow: hidden;
+}
+.dark pre.cmd { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.15); }
+pre.cmd .c { color: #8fa3c7; }     /* Kommentar */
+pre.cmd .p { color: var(--brand-gold); } /* Prompt */
+pre.cmd .k { color: #7fb0ff; }     /* Schlüsselwort */
+.statement {
+  font-size: 46px; line-height: 1.25; font-weight: 700; color: var(--brand-dark);
+  max-width: 1000px;
+}
+.dark .statement { color: #fff; }
+.callout {
+  border-left: 6px solid var(--brand-blue); background: rgba(30,95,202,.07);
+  padding: 16px 22px; border-radius: 0 12px 12px 0; font-size: 22px;
+}
+.callout.hl { border-color: var(--brand-gold); background: rgba(255,215,0,.12); }
+.dark .callout { background: rgba(255,255,255,.08); color: #fff; }
+.callout.warn { border-color: #b42318; background: rgba(180,35,24,.07); }
+.fill { flex: 1; min-height: 0; }
+.center { display: flex; align-items: center; justify-content: center; }
+.mt-auto { margin-top: auto; }
+.mt { margin-top: 24px; }
+svg text { font-family: var(--font-sans); }
+table.t { border-collapse: collapse; width: 100%; font-size: 21px; }
+table.t th, table.t td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.t th { color: var(--brand-dark); font-size: 18px; text-transform: uppercase; letter-spacing: .05em; }
+
+/* Fußzeile jeder Folie */
+.slide-foot {
+  position: absolute; left: 80px; right: 80px; bottom: 26px;
+  display: flex; justify-content: space-between; font-size: 15px; color: #6b7280;
+}
+.dark .slide-foot, .title .slide-foot { color: rgba(255,255,255,.55); }
+.slide-foot .brand::before {
+  content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+  background: var(--brand-gold); margin-right: 10px; vertical-align: 1px;
+}
+
+/* ---------- Sprechernotizen ---------- */
+.notes { display: none; }
+#notes-panel {
+  position: fixed; left: 0; right: 0; bottom: 0; max-height: 34vh; overflow: auto;
+  background: #fff; border-top: 4px solid var(--brand-gold);
+  padding: 16px 24px 20px; font-size: 17px; line-height: 1.6; display: none; z-index: 30;
+}
+#notes-panel h4 { margin: 0 0 6px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-blue); }
+#notes-panel ul { margin: 0; padding-left: 20px; }
+body.show-notes #notes-panel { display: block; }
+
+/* ---------- Bedienleiste ---------- */
+#bar {
+  position: fixed; right: 16px; top: 12px; z-index: 40; display: flex; gap: 6px;
+  opacity: .25; transition: opacity .2s;
+}
+#bar:hover, body.read #bar { opacity: 1; }
+#bar button {
+  font: 600 13px var(--font-sans); color: #fff; background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 7px 11px; cursor: pointer;
+}
+#bar button:hover { background: var(--brand-blue); }
+#bar button:focus-visible { outline: 2px solid var(--brand-gold); outline-offset: 2px; }
+#progress { position: fixed; left: 0; top: 0; height: 4px; background: var(--brand-gold); z-index: 41; transition: width .25s; }
+#help {
+  position: fixed; inset: 0; background: rgba(10,31,68,.88); color: #fff; z-index: 50;
+  display: none; align-items: center; justify-content: center; font-size: 18px;
+}
+#help.open { display: flex; }
+#help div { background: var(--brand-dark); border-radius: 16px; padding: 28px 36px; line-height: 2; }
+#help kbd { font-family: var(--font-mono); background: rgba(255,255,255,.15); padding: 2px 8px; border-radius: 6px; margin-right: 8px; }
+
+/* ---------- Lesemodus (Handout) ---------- */
+body.read { overflow: auto; background: #f3f4f6; }
+body.read #deck { position: static; padding: 64px 16px 40px; }
+body.read .frame { position: relative; display: block; margin: 0 auto; box-shadow: 0 4px 20px rgba(13,41,87,.12); border-radius: 6px; }
+body.read .frame + .notes-read { }
+.notes-read {
+  display: none; background: #fff; border: 1px solid var(--border); border-top: 4px solid var(--brand-gold);
+  border-radius: 0 0 10px 10px; margin: 0 auto 40px; padding: 16px 24px; font-size: 16px; line-height: 1.65;
+}
+body.read .notes-read { display: block; }
+.notes-read h4 { margin: 0 0 6px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-blue); }
+.notes-read ul { margin: 0; padding-left: 20px; }
+body.read #notes-panel { display: none !important; }
+
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body { background: #fff !important; overflow: visible !important; }
+  #bar, #progress, #notes-panel, #help { display: none !important; }
+  #deck { position: static !important; padding: 0 !important; }
+  .frame { position: relative !important; display: block !important; box-shadow: none !important; margin: 0 auto !important; break-inside: avoid; }
+  .notes-read { display: block !important; break-inside: avoid; border-radius: 0; margin-bottom: 0 !important; }
+  .page { break-after: page; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<nav id="bar" aria-label="Präsentation steuern">
+  <button type="button" id="b-prev" title="Zurück (←)">←</button>
+  <button type="button" id="b-next" title="Weiter (→)">→</button>
+  <button type="button" id="b-notes" title="Sprechernotizen (N)">Notizen</button>
+  <button type="button" id="b-read" title="Lesemodus / Handout (L)">Lesemodus</button>
+  <button type="button" id="b-full" title="Vollbild (F)">Vollbild</button>
+  <button type="button" id="b-help" title="Tastenkürzel (?)">?</button>
+</nav>
+
+<main id="deck">
+<!-- 1 Titel -->
+<section class="slide title">
+  <div class="fill" style="display:flex;flex-direction:column;justify-content:center">
+    <span class="eyebrow">Workshop · Teil Deployment · Grundlagen 3/3</span>
+    <h1>Deployment verstehen</h1>
+    <p class="lead muted" style="margin-top:22px;max-width:960px">Wie dein TYPO3-Projekt sauber und reproduzierbar auf den Server kommt, und wer dabei welche Aufgabe übernimmt.</p>
+    <div style="margin-top:30px;display:flex;gap:10px"><span class="pill">Deployer</span><span class="pill">GitHub Actions</span><span class="pill">GitLab CI</span><span class="pill">Rollback</span></div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Letzter Grundlagenblock vor der Praxis. Danach bauen wir genau diesen Ablauf gemeinsam auf.</li>
+  </ul></aside>
+</section>
+
+<!-- 2 Begriff -->
+<section class="slide">
+  <span class="eyebrow">Begriff</span>
+  <h2>Was ist Deployment?</h2>
+  <p class="statement">Deployment heißt: einen geprüften Stand aus Git auf den Server bringen. Immer auf dieselbe Weise, ohne Handarbeit.</p>
+  <div class="grid cols3 mt-auto">
+    <div class="card ok"><h3>Reproduzierbar</h3><p>Jedes Deployment läuft gleich ab, egal wer es auslöst.</p></div>
+    <div class="card ok"><h3>Nachvollziehbar</h3><p>Du weißt genau, welcher Commit gerade live ist.</p></div>
+    <div class="card ok"><h3>Umkehrbar</h3><p>Geht etwas schief, ist der alte Stand in Sekunden zurück.</p></div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Der Begriff klingt groß, die Idee ist einfach: den Weg auf den Server automatisieren.</li>
+    <li>Die drei Eigenschaften unten sind der Maßstab für alles Weitere.</li>
+  </ul></aside>
+</section>
+
+<!-- 3 Vorher / nachher -->
+<section class="slide gray">
+  <span class="eyebrow">Vorher und nachher</span>
+  <h2>Vom FTP-Upload zum Workflow</h2>
+  <div class="grid cols2 fill" style="align-content:start">
+    <div class="card warn">
+      <h3>Von Hand</h3>
+      <ul class="list cross small">
+        <li>Geänderte Dateien per FTP hochladen und hoffen, dass keine fehlt</li>
+        <li><code>composer install</code> auf dem Server, falls das überhaupt geht</li>
+        <li>Während des Uploads ist die Seite halb alt, halb neu</li>
+        <li>Zurück zum alten Stand? Nur mit Backup und viel Zeit</li>
+        <li>Das Wissen steckt im Kopf einer einzigen Person</li>
+      </ul>
+    </div>
+    <div class="card ok">
+      <h3>Automatisiert</h3>
+      <ul class="list check small">
+        <li><code>git push</code> auf <code>main</code> löst alles aus</li>
+        <li>Abhängigkeiten werden vorab gebaut und vollständig übertragen</li>
+        <li>Umgeschaltet wird erst, wenn alles bereitliegt</li>
+        <li>Rollback mit einem Befehl</li>
+        <li>Der Ablauf steht als Datei im Repository</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Fragen: Wer deployt heute noch per FTP oder per SSH und <code>git pull</code> auf dem Server? Kein Vorwurf, das ist weit verbreitet.</li>
+    <li>Der letzte Punkt ist oft der wichtigste: Urlaub, Krankheit, neue Kollegen. Der Workflow ist dokumentiertes Wissen.</li>
+  </ul></aside>
+</section>
+
+<!-- 4 Ablauf TYPO3 -->
+<section class="slide">
+  <span class="eyebrow">Was genau passiert</span>
+  <h2 style="margin-bottom:20px">Die Schritte eines TYPO3-Deployments</h2>
+  <div class="center">
+    <svg viewBox="0 0 1120 280" width="1120" height="280" role="img" aria-label="Sechs Schritte: bauen, hochladen, verknüpfen, TYPO3 vorbereiten, umschalten, aufräumen">
+      <defs><marker id="f1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1e5fca"/></marker></defs>
+      <g text-anchor="middle">
+        <rect x="0" y="10" width="168" height="200" rx="14" fill="#e9e9e9"/>
+        <text x="84" y="58" font-size="30" font-weight="700" fill="#1e5fca">1</text>
+        <text x="84" y="96" font-size="20" font-weight="700" fill="#0d2957">Bauen</text>
+        <text x="84" y="132" font-size="16" fill="#4a5568">composer</text>
+        <text x="84" y="156" font-size="16" fill="#4a5568">install auf</text>
+        <text x="84" y="180" font-size="16" fill="#4a5568">dem Runner</text>
+        <rect x="190" y="10" width="168" height="200" rx="14" fill="#e9e9e9"/>
+        <text x="274" y="58" font-size="30" font-weight="700" fill="#1e5fca">2</text>
+        <text x="274" y="96" font-size="20" font-weight="700" fill="#0d2957">Hochladen</text>
+        <text x="274" y="132" font-size="16" fill="#4a5568">per rsync</text>
+        <text x="274" y="156" font-size="16" fill="#4a5568">in neuen</text>
+        <text x="274" y="180" font-size="16" fill="#4a5568">Release-Ordner</text>
+        <rect x="380" y="10" width="168" height="200" rx="14" fill="#e9e9e9"/>
+        <text x="464" y="58" font-size="30" font-weight="700" fill="#1e5fca">3</text>
+        <text x="464" y="96" font-size="20" font-weight="700" fill="#0d2957">Verknüpfen</text>
+        <text x="464" y="132" font-size="16" fill="#4a5568">fileadmin,</text>
+        <text x="464" y="156" font-size="16" fill="#4a5568">typo3temp,</text>
+        <text x="464" y="180" font-size="16" fill="#4a5568">additional.php</text>
+        <rect x="570" y="10" width="168" height="200" rx="14" fill="#e9e9e9"/>
+        <text x="654" y="58" font-size="30" font-weight="700" fill="#1e5fca">4</text>
+        <text x="654" y="96" font-size="20" font-weight="700" fill="#0d2957">TYPO3</text>
+        <text x="654" y="132" font-size="16" fill="#4a5568">Datenbank,</text>
+        <text x="654" y="156" font-size="16" fill="#4a5568">Upgrades,</text>
+        <text x="654" y="180" font-size="16" fill="#4a5568">Caches</text>
+        <rect x="760" y="10" width="168" height="200" rx="14" fill="#0d2957"/>
+        <text x="844" y="58" font-size="30" font-weight="700" fill="#ffd700">5</text>
+        <text x="844" y="96" font-size="20" font-weight="700" fill="#fff">Umschalten</text>
+        <text x="844" y="132" font-size="16" fill="#dbe3f2">current zeigt</text>
+        <text x="844" y="156" font-size="16" fill="#dbe3f2">auf den neuen</text>
+        <text x="844" y="180" font-size="16" fill="#dbe3f2">Release</text>
+        <rect x="950" y="10" width="168" height="200" rx="14" fill="#e9e9e9"/>
+        <text x="1034" y="58" font-size="30" font-weight="700" fill="#1e5fca">6</text>
+        <text x="1034" y="96" font-size="20" font-weight="700" fill="#0d2957">Aufräumen</text>
+        <text x="1034" y="132" font-size="16" fill="#4a5568">Seiten-Cache</text>
+        <text x="1034" y="156" font-size="16" fill="#4a5568">leeren, alte</text>
+        <text x="1034" y="180" font-size="16" fill="#4a5568">Releases weg</text>
+      </g>
+      <g stroke="#1e5fca" stroke-width="3" marker-end="url(#f1)">
+        <line x1="171" y1="110" x2="187" y2="110"/>
+        <line x1="361" y1="110" x2="377" y2="110"/>
+        <line x1="551" y1="110" x2="567" y2="110"/>
+        <line x1="741" y1="110" x2="757" y2="110"/>
+        <line x1="931" y1="110" x2="947" y2="110"/>
+      </g>
+      <text x="369" y="258" text-anchor="middle" font-size="18" fill="#4a5568">Schritte 1–4: vorbereiten, die Live-Seite läuft unverändert weiter</text>
+      <text x="939" y="258" text-anchor="middle" font-size="18" fill="#4a5568">Schritte 5–6: wenige Sekunden</text>
+    </svg>
+  </div>
+<pre class="cmd" style="font-size:17px;margin-top:auto"><span class="c"># Schritt 4 im Workshop-Projekt: vor dem Umschalten im neuen Release</span>
+typo3 install:fixfolderstructure   typo3 extension:setup        typo3 upgrade:run
+typo3 database:updateschema        typo3 referenceindex:update  typo3 language:update
+typo3 cache:warmup --group system  <span class="c"># nach dem Umschalten: cache:flush --group pages</span></pre>
+  <aside class="notes"><ul>
+    <li>Gebaut wird auf dem Runner mit <code>composer install --no-dev --no-scripts</code>: keine Entwicklungspakete, und die Composer-Scripts laufen dort nicht, weil der Runner keine TYPO3-Datenbank hat.</li>
+    <li>Schritt 3 ist der Schlüssel: Redaktionsdaten und die Zugangsdaten in <code>additional.php</code> leben in <code>shared/</code> und werden nur verknüpft. Sie werden nie überschrieben.</li>
+    <li>Schritt 4 läuft im neuen Release, bevor er live geht. Schlägt ein Befehl fehl, bricht das Deployment ab, und der alte Stand bleibt online.</li>
+    <li>Alle Befehle stehen als Tasks in der <code>deploy.php</code> und laufen über <code>vendor/bin/typo3</code> mit <code>/usr/bin/php8.5</code>.</li>
+  </ul></aside>
+</section>
+
+<!-- 5 Arbeitsteilung -->
+<section class="slide gray">
+  <span class="eyebrow">Wer macht was?</span>
+  <h2>Drei Werkzeuge, drei Aufgaben</h2>
+  <div class="grid cols3 fill" style="align-content:start">
+    <div class="card accent"><div class="icon">⎇</div><h3>Git</h3><p class="blue" style="font-weight:700">Was wird deployt?</p><p>Der Commit auf <code>main</code> ist der Stand, der live gehen soll.</p></div>
+    <div class="card accent"><div class="icon">⚙</div><h3>GitHub Actions / GitLab CI</h3><p class="blue" style="font-weight:700">Wann und wo?</p><p>Der Automat: startet bei jedem Push einen Build-Rechner, baut das Projekt und ruft Deployer auf.</p></div>
+    <div class="card goldline"><div class="icon">⇪</div><h3>Deployer</h3><p class="blue" style="font-weight:700">Wie kommt es auf den Server?</p><p>Lädt per rsync hoch, verknüpft, führt die TYPO3-Befehle aus, schaltet um.</p></div>
+  </div>
+  <p class="small mt">Das Prinzip: <strong>Actions</strong> bzw. <strong>GitLab CI</strong> ist austauschbar, <strong>Deployer</strong> bleibt gleich. Deshalb lässt sich der Workflow leicht von GitHub nach GitLab übertragen.</p>
+  <aside class="notes"><ul>
+    <li>Diese Folie ist die wichtigste der Präsentation. Wer die Arbeitsteilung verstanden hat, findet sich in jedem Setup zurecht.</li>
+    <li>Deployer läuft in unseren Projekten nur im Runner, nicht auf dem Laptop. Dadurch deployt jeder Push in derselben, sauberen Umgebung, unabhängig davon, wer ihn auslöst.</li>
+  </ul></aside>
+</section>
+
+<!-- 6 Deployer Struktur -->
+<section class="slide">
+  <span class="eyebrow">Deployer</span>
+  <h2>So sieht es auf dem Server aus</h2>
+  <div class="grid cols2 fill" style="align-content:start;grid-template-columns:1fr 1.05fr">
+<pre class="cmd" style="font-size:19px">/home/www/t3crr26/production/
+├── <span class="k">releases/</span>
+│   ├── 3/
+│   ├── 4/
+│   └── 5/          <span class="c">← neuester Stand</span>
+├── <span class="k">shared/</span>
+│   ├── public/fileadmin/
+│   ├── public/typo3temp/
+│   └── config/system/additional.php
+└── <span class="p">current</span> → releases/5</pre>
+    <div>
+      <p><strong>releases/</strong>: jedes Deployment bekommt einen eigenen, vollständigen Ordner. Die letzten paar bleiben liegen.</p>
+      <p><strong>shared/</strong>: alles, was ein Deployment überleben muss. Wird in jeden Release verlinkt.</p>
+      <p><strong>current</strong>: ein Symlink auf den aktiven Release. Umschalten heißt: diesen Link umbiegen.</p>
+      <div class="callout hl small">Der Dokumentenstamm im Hosting zeigt auf <code>current/public</code>.</div>
+    </div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Deployer ist ein Open-Source-Werkzeug in PHP (deployer.org). Konfiguriert wird es in einer <code>deploy.php</code> im Projekt.</li>
+    <li>Den Dokumentenstamm stellst du einmalig im Hosting-Panel um. Ein falscher Stamm ist eine häufige Fehlerquelle beim ersten Deployment.</li>
+    <li>Der Pfad ist der aus dem Workshop-Projekt (<code>deploy_path</code> in <code>.hosts.yml</code>). Bei anderen Hostern sieht er anders aus.</li>
+    <li><code>additional.php</code> legst du beim ersten Deployment einmal von Hand in <code>shared/config/system/</code> an, mit den Datenbank-Zugangsdaten des Servers.</li>
+  </ul></aside>
+</section>
+
+<!-- 7 Rollback -->
+<section class="slide dark">
+  <span class="eyebrow">Deployer</span>
+  <h2 style="margin-bottom:22px">Umschalten ohne Ausfall, zurück ohne Stress</h2>
+  <div class="grid cols2" style="grid-template-columns:0.8fr 1.2fr;gap:28px;align-items:start">
+    <ul class="list small">
+      <li>Die Live-Seite läuft aus <code>current</code> weiter, während der neue Release vorbereitet wird.</li>
+      <li>Erst wenn alles bereitliegt, wird der Symlink umgestellt.</li>
+      <li>Bricht ein Schritt ab, bleibt der alte Stand einfach live.</li>
+    </ul>
+<pre class="cmd" style="font-size:17px;padding:18px 22px"><span class="c"># Deployer läuft nur im Runner. Zurück geht es so:</span>
+
+<span class="c"># 1. Standard: Commit rückgängig machen</span>
+<span class="p">$</span> git revert HEAD
+<span class="p">$</span> git push           <span class="c"># neues Deployment</span>
+
+<span class="c"># 2. Schnell: Rollback-Workflow per Klick</span>
+<span class="c"># .github/workflows/rollback.yml</span>
+<span class="k">on:</span> workflow_dispatch  <span class="c"># → dep rollback production</span>
+
+<span class="c"># 3. Notfall: per SSH auf dem Server</span>
+<span class="p">$</span> ln -sfn releases/4 current</pre>
+  </div>
+  <div class="callout hl mt-auto">Jeder Rollback setzt nur den <strong>Code</strong> zurück. Datenbankänderungen bleiben bestehen.</div>
+  <aside class="notes"><ul>
+    <li><strong>Wichtig:</strong> In unseren Projekten ist Deployer nur im GitHub-Runner installiert. <code>dep rollback</code> lässt sich deshalb nicht einfach vom Laptop aus aufrufen.</li>
+    <li><strong>Weg 1, <code>git revert</code>:</strong> erzeugt einen neuen Commit, der die letzte Änderung rückgängig macht. Der Push löst ein ganz normales Deployment aus. Das dauert so lange wie ein Deployment, ist aber der sauberste Weg: Git und Server sind danach wieder auf demselben Stand.</li>
+    <li><strong>Weg 2, Rollback-Workflow:</strong> eine zweite Workflow-Datei mit <code>on: workflow_dispatch</code>, die statt <code>dep deploy</code> den Befehl <code>dep rollback production</code> ausführt. Sie erscheint im Reiter „Actions“ mit einem Button „Run workflow“. Im Workshop-Projekt liegt sie als <code>.github/workflows/rollback.yml</code>: gleiche Secrets, gleiche <code>concurrency</code>-Gruppe wie das Deployment, damit beide nie gleichzeitig laufen. Composer-Abhängigkeiten braucht sie nicht, nur Deployer, <code>deploy.php</code> und <code>.hosts.yml</code>. Bei GitLab heißt das Gegenstück „manueller Job“: In der <code>.gitlab-ci.yml</code> des Projekts steht ein Job <code>rollback</code> mit <code>when: manual</code>. Er erscheint in jeder Pipeline von <code>main</code> mit einem Play-Button.</li>
+    <li><strong>Weg 3, Notfall per SSH:</strong> im Deploy-Pfad <code>current</code> von Hand auf den vorherigen Release umbiegen, danach den Cache leeren. Achtung: <code>main</code> enthält dann weiter den fehlerhaften Stand. Der nächste Push deployt ihn erneut, deshalb zusätzlich Weg 1.</li>
+    <li>Wer möchte, kann Deployer auch lokal installieren (<code>composer global require deployer/deployer:^8</code>). Mit der <code>.hosts.yml</code> aus dem Repository und dem eigenen SSH-Schlüssel auf dem Server funktioniert <code>dep rollback production</code> dann auch vom Laptop.</li>
+    <li>Datenbank: Hat ein Update das Schema verändert, passt der alte Code eventuell nicht mehr dazu. Vor größeren Updates deshalb ein Datenbank-Backup. Wie viele Releases liegen bleiben, steuert <code>keep_releases</code>, im Projekt 5.</li>
+  </ul></aside>
+</section>
+
+<!-- 8 GitHub Actions -->
+<section class="slide">
+  <span class="eyebrow">GitHub Actions</span>
+  <h2 style="margin-bottom:18px">Der Workflow als Datei im Repository</h2>
+  <div class="grid cols2 fill" style="align-content:start;grid-template-columns:1.75fr 1fr;gap:24px">
+<pre class="cmd" style="font-size:14.5px;line-height:1.45;padding:16px 20px"><span class="c"># .github/workflows/deployment.yml (gekürzt)</span>
+<span class="k">on:</span>
+  push:
+    branches: [main]
+<span class="k">jobs:</span>
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.5', extensions: 'mbstring, intl' }
+      - run: composer global require deployer/deployer:^8
+      - uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      - run: composer install --no-dev --no-scripts --prefer-dist
+      - run: dep deploy production -vvv</pre>
+    <div class="small">
+      <p><strong>on:</strong> Auslöser, hier jeder Push auf <code>main</code>.</p>
+      <p><strong>runs-on:</strong> GitHub stellt einen frischen Linux-Rechner, den <strong>Runner</strong>.</p>
+      <p><strong>steps:</strong> Code holen, PHP, Deployer, SSH-Schlüssel, dann das Projekt bauen.</p>
+      <p><strong>secrets:</strong> der private Deploy-Schlüssel und der Servername, verschlüsselt bei GitHub hinterlegt.</p>
+      <p style="margin:0">Zum Schluss übernimmt <strong>Deployer</strong>.</p>
+    </div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Gekürzte Fassung der <code>deployment.yml</code> aus dem Workshop-Projekt: Namen der Schritte, <code>mkdir</code>/<code>chmod</code> für <code>~/.ssh</code> und einige Composer-Optionen sind weggelassen.</li>
+    <li><code>concurrency: production</code> in der echten Datei sorgt dafür, dass nie zwei Deployments gleichzeitig laufen.</li>
+    <li>Secrets legst du im Repository an unter Settings → Secrets and variables → Actions. In Logs werden sie automatisch ausgeblendet.</li>
+    <li>Den Verlauf jedes Laufs siehst du im Reiter „Actions“ im Repository. Dort steht auch, an welchem Schritt es gehakt hat.</li>
+  </ul></aside>
+</section>
+
+<!-- 9 Gesamtablauf -->
+<section class="slide gray">
+  <span class="eyebrow">Alles zusammen</span>
+  <h2>Vom Push bis zur Live-Seite</h2>
+  <div class="fill center">
+    <svg viewBox="0 0 1120 330" width="1120" height="330" role="img" aria-label="Laptop pusht zu GitHub, GitHub Actions baut und ruft Deployer auf, Deployer deployt per SSH auf den Server">
+      <defs><marker id="g1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1e5fca"/></marker></defs>
+      <rect x="0" y="80" width="220" height="140" rx="16" fill="#fff" stroke="#cfd4dc" stroke-width="2"/>
+      <text x="110" y="132" text-anchor="middle" font-size="23" font-weight="700" fill="#0d2957">Dein Laptop</text>
+      <text x="110" y="166" text-anchor="middle" font-size="17" fill="#4a5568">DDEV, Git</text>
+      <text x="110" y="192" text-anchor="middle" font-size="17" fill="#4a5568">Commit auf main</text>
+
+      <rect x="300" y="80" width="220" height="140" rx="16" fill="#fff" stroke="#cfd4dc" stroke-width="2"/>
+      <text x="410" y="132" text-anchor="middle" font-size="23" font-weight="700" fill="#0d2957">GitHub</text>
+      <text x="410" y="166" text-anchor="middle" font-size="17" fill="#4a5568">Repository</text>
+      <text x="410" y="192" text-anchor="middle" font-size="17" fill="#4a5568">startet Workflow</text>
+
+      <rect x="600" y="80" width="220" height="140" rx="16" fill="#0d2957"/>
+      <text x="710" y="132" text-anchor="middle" font-size="23" font-weight="700" fill="#fff">Runner</text>
+      <text x="710" y="166" text-anchor="middle" font-size="17" fill="#dbe3f2">composer install</text>
+      <text x="710" y="192" text-anchor="middle" font-size="17" fill="#ffd700">dep deploy</text>
+
+      <rect x="900" y="80" width="220" height="140" rx="16" fill="#fff" stroke="#cfd4dc" stroke-width="2"/>
+      <text x="1010" y="132" text-anchor="middle" font-size="23" font-weight="700" fill="#0d2957">Server</text>
+      <text x="1010" y="166" text-anchor="middle" font-size="17" fill="#4a5568">neuer Release,</text>
+      <text x="1010" y="192" text-anchor="middle" font-size="17" fill="#4a5568">current umgestellt</text>
+
+      <g stroke="#1e5fca" stroke-width="4" marker-end="url(#g1)">
+        <line x1="226" y1="150" x2="292" y2="150"/><line x1="526" y1="150" x2="592" y2="150"/><line x1="826" y1="150" x2="892" y2="150"/>
+      </g>
+      <g font-size="17" text-anchor="middle" fill="#1e5fca" font-family="ui-monospace, Menlo, monospace">
+        <text x="260" y="62">git push</text><text x="560" y="62">Trigger</text><text x="860" y="62">SSH</text>
+      </g>
+      <text x="560" y="290" text-anchor="middle" font-size="20" fill="#0d2957">Dauer: meist ein bis drei Minuten. Du machst nur den ersten Schritt.</text>
+    </svg>
+  </div>
+  <aside class="notes"><ul>
+    <li>Einmal langsam von links nach rechts durchgehen und die Verbindung zu den beiden vorherigen Präsentationen herstellen: links Git, rechts SSH.</li>
+    <li>Die Dauer hängt vom Projekt und vom Hoster ab. Die Angabe ist ein Erfahrungswert, keine Garantie.</li>
+  </ul></aside>
+</section>
+
+<!-- 10 GitLab CI -->
+<section class="slide">
+  <span class="eyebrow">GitLab CI</span>
+  <h2>Dasselbe Prinzip mit GitLab</h2>
+  <div class="grid cols2 fill" style="align-content:start;grid-template-columns:1.25fr 1fr;gap:24px">
+<pre class="cmd" style="font-size:14.5px;line-height:1.45;padding:16px 20px"><span class="c"># .gitlab-ci.yml (gekürzt)</span>
+<span class="k">deploy:</span>
+  stage: deploy
+  image: php:8.5-cli
+  resource_group: production
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"
+          && $CI_PIPELINE_SOURCE == "push"'
+  before_script:
+    <span class="c"># git, rsync, ssh, intl, Composer installieren …</span>
+    - composer global require deployer/deployer:^8
+    - eval "$(ssh-agent -s)"
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+  script:
+    - composer install --no-dev --no-scripts
+    - dep deploy production -vvv</pre>
+    <table class="t" style="font-size:19px">
+      <thead><tr><th>GitHub Actions</th><th>GitLab CI</th></tr></thead>
+      <tbody>
+        <tr><td><code>.github/workflows/*.yml</code></td><td><code>.gitlab-ci.yml</code></td></tr>
+        <tr><td>Workflow, Job, Step</td><td>Pipeline, Stage, Job</td></tr>
+        <tr><td>Runner von GitHub</td><td>Runner von gitlab.com oder eigene</td></tr>
+        <tr><td><code>concurrency</code></td><td><code>resource_group</code></td></tr>
+        <tr><td>Secrets</td><td>CI/CD-Variablen</td></tr>
+        <tr><td colspan="2"><strong>Deployer und <code>deploy.php</code> bleiben gleich.</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <aside class="notes"><ul>
+    <li>Gekürzte Fassung der <code>.gitlab-ci.yml</code> aus dem Workshop-Projekt. Der größte Unterschied: Das PHP-Image bringt wenig mit, deshalb installiert <code>before_script</code> erst git, rsync, den SSH-Client, die intl-Erweiterung und Composer.</li>
+    <li>Den SSH-Agenten startet der Job selbst, statt einer fertigen Action. Die Variablen <code>SSH_PRIVATE_KEY</code> und <code>SSH_HOST</code> heißen genauso wie die Secrets bei GitHub.</li>
+    <li>Deployment und Rollback teilen sich in der Projektdatei einen versteckten Job <code>.deployer</code> (Image, <code>resource_group</code>, <code>before_script</code>), den beide per <code>extends</code> erben. Der Rollback ist ein manueller Job mit <code>allow_failure: true</code>, sonst stünde jede Pipeline auf „blocked“, bis jemand ihn startet.</li>
+    <li>Bei selbst gehostetem GitLab braucht es einen eigenen Runner. Das ist meist die größte Hürde, nicht die YAML-Datei.</li>
+  </ul></aside>
+</section>
+
+<!-- 11 Stolperfallen -->
+<section class="slide gray">
+  <span class="eyebrow">Praxis</span>
+  <h2>Typische Stolperfallen</h2>
+  <div class="grid cols2 fill" style="align-content:start">
+    <div class="card warn"><h3>Dokumentenstamm</h3><p>Zeigt noch auf den alten Ordner statt auf <code>current/public</code>.</p></div>
+    <div class="card warn"><h3>Falsche PHP-Version</h3><p>Auf der Kommandozeile des Hosters läuft eine andere PHP-Version als im Web. Pfad zur richtigen CLI angeben.</p></div>
+    <div class="card warn"><h3>Fehlende Shared-Dateien</h3><p><code>additional.php</code> mit den Zugangsdaten liegt beim ersten Deployment noch nicht in <code>shared/config/system/</code>.</p></div>
+    <div class="card warn"><h3>known_hosts fehlt</h3><p>Der Runner kennt den Server nicht und bricht ab. <code>ssh-keyscan</code> im Workflow nicht vergessen.</p></div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Das sind die häufigsten Gründe, wenn das erste Deployment hakt. Die Fehlermeldungen im Actions-Log führen meist direkt hin.</li>
+    <li>Zur PHP-Version: Bei manchen Shared-Hostern muss der volle Pfad angegeben werden. Im Workshop-Projekt steht dafür <code>set('bin/php', '/usr/bin/php8.5')</code> in der <code>deploy.php</code>.</li>
+  </ul></aside>
+</section>
+
+<!-- 12 Fazit -->
+<section class="slide dark">
+  <span class="eyebrow">Zusammenfassung</span>
+  <h2>Das nimmst du mit</h2>
+  <div class="grid cols2 fill" style="align-content:start">
+    <ul class="list">
+      <li>Deployment ist der automatisierte Weg von Git auf den Server.</li>
+      <li><strong>Git</strong> sagt was, <strong>Actions / GitLab CI</strong> sagt wann, <strong>Deployer</strong> sagt wie.</li>
+      <li>Releases, <code>shared/</code> und der Symlink <code>current</code> machen Umschalten und Rollback sicher.</li>
+      <li>Der ganze Ablauf liegt als Datei im Repository.</li>
+    </ul>
+    <div class="card goldline">
+      <h3>Jetzt in die Praxis</h3>
+      <p>Wir richten das zusammen ein: Repository, Deploy-Schlüssel, Secrets, <code>deploy.php</code> und Workflow. Am Ende steht dein erstes automatisches Deployment.</p>
+      <p class="gold" style="margin:0;font-weight:700">Los geht's.</p>
+    </div>
+  </div>
+  <aside class="notes"><ul>
+    <li>Fragen sammeln, dann direkt in die Übung.</li>
+    <li>Hinweis an die Teilnehmer: Die drei Präsentationen gibt es im Anschluss als Dateien, mit Notizen im Lesemodus (Taste L).</li>
+  </ul></aside>
+</section>
+
+</main>
+
+<div id="notes-panel" aria-live="polite"></div>
+<div id="help" role="dialog" aria-label="Tastenkürzel"><div>
+  <kbd>→</kbd><kbd>Leertaste</kbd> nächste Folie<br>
+  <kbd>←</kbd> vorherige Folie<br>
+  <kbd>Pos1</kbd><kbd>Ende</kbd> erste / letzte Folie<br>
+  <kbd>N</kbd> Sprechernotizen ein/aus<br>
+  <kbd>L</kbd> Lesemodus (alle Folien mit Notizen, druckbar)<br>
+  <kbd>F</kbd> Vollbild<br>
+  <kbd>Esc</kbd> Hilfe schließen
+</div></div>
+
+<script>
+(function () {
+  var FOOT = "TYPO3camp RheinRuhr 2026 \u00b7 Workshop TYPO3 v14 \u00b7 Wolfgang Wagner";
+  var deck = document.getElementById('deck');
+  var slides = Array.prototype.slice.call(deck.querySelectorAll('.slide'));
+  var frames = [];
+  var total = slides.length;
+
+  slides.forEach(function (s, i) {
+    var frame = document.createElement('div');
+    frame.className = 'frame';
+    s.parentNode.insertBefore(frame, s);
+    frame.appendChild(s);
+    var foot = document.createElement('div');
+    foot.className = 'slide-foot';
+    foot.innerHTML = '<span class="brand">' + FOOT + '</span><span>' + (i + 1) + ' / ' + total + '</span>';
+    s.appendChild(foot);
+    var notes = s.querySelector('.notes');
+    var wrap = document.createElement('div');
+    wrap.className = 'page';
+    frame.parentNode.insertBefore(wrap, frame);
+    wrap.appendChild(frame);
+    if (notes) {
+      var nr = document.createElement('div');
+      nr.className = 'notes-read';
+      nr.innerHTML = '<h4>Notizen zu Folie ' + (i + 1) + '</h4>' + notes.innerHTML;
+      wrap.appendChild(nr);
+    }
+    frames.push(frame);
+  });
+
+  var cur = 0;
+  var fromHash = parseInt((location.hash || '').replace('#', ''), 10);
+  if (fromHash >= 1 && fromHash <= total) cur = fromHash - 1;
+
+  function layout(printScale) {
+    var read = document.body.classList.contains('read') || printScale;
+    var scale;
+    if (printScale) scale = printScale;
+    else if (read) scale = Math.min(1, (window.innerWidth - 32) / 1280);
+    else {
+      var notesH = document.body.classList.contains('show-notes') ? document.getElementById('notes-panel').offsetHeight : 0;
+      scale = Math.min(window.innerWidth / 1280, (window.innerHeight - notesH) / 720);
+    }
+    frames.forEach(function (f) {
+      f.style.width = (1280 * scale) + 'px';
+      f.style.height = (720 * scale) + 'px';
+      f.firstChild.style.transform = 'scale(' + scale + ')';
+      if (!read) {
+        var notesH2 = document.body.classList.contains('show-notes') ? document.getElementById('notes-panel').offsetHeight : 0;
+        f.style.left = ((window.innerWidth - 1280 * scale) / 2) + 'px';
+        f.style.top = ((window.innerHeight - notesH2 - 720 * scale) / 2) + 'px';
+      } else { f.style.left = ''; f.style.top = ''; }
+    });
+    document.querySelectorAll('.notes-read').forEach(function (n) { n.style.width = (1280 * scale) + 'px'; });
+  }
+
+  function show(i) {
+    cur = Math.max(0, Math.min(total - 1, i));
+    frames.forEach(function (f, k) { f.classList.toggle('current', k === cur); });
+    var n = slides[cur].querySelector('.notes');
+    document.getElementById('notes-panel').innerHTML = '<h4>Notizen · Folie ' + (cur + 1) + ' / ' + total + '</h4>' + (n ? n.innerHTML : '<p>Keine Notizen.</p>');
+    document.getElementById('progress').style.width = ((cur + 1) / total * 100) + '%';
+    if (history.replaceState) history.replaceState(null, '', '#' + (cur + 1));
+    layout();
+  }
+
+  function toggle(cls) { document.body.classList.toggle(cls); show(cur); if (cls === 'read' && document.body.classList.contains('read')) frames[cur].scrollIntoView(); }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key;
+    var help = document.getElementById('help');
+    if (k === 'Escape') { help.classList.remove('open'); return; }
+    if (k === '?') { help.classList.toggle('open'); return; }
+    if (k === 'n' || k === 'N') { toggle('show-notes'); return; }
+    if (k === 'l' || k === 'L') { toggle('read'); return; }
+    if (k === 'f' || k === 'F') { if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); else document.exitFullscreen(); return; }
+    if (document.body.classList.contains('read')) return;
+    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'ArrowDown') { e.preventDefault(); show(cur + 1); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'ArrowUp') { e.preventDefault(); show(cur - 1); }
+    else if (k === 'Home') show(0);
+    else if (k === 'End') show(total - 1);
+  });
+  document.getElementById('b-prev').onclick = function () { show(cur - 1); };
+  document.getElementById('b-next').onclick = function () { show(cur + 1); };
+  document.getElementById('b-notes').onclick = function () { toggle('show-notes'); };
+  document.getElementById('b-read').onclick = function () { toggle('read'); };
+  document.getElementById('b-full').onclick = function () { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); };
+  document.getElementById('b-help').onclick = function () { document.getElementById('help').classList.toggle('open'); };
+
+  var tx = null;
+  deck.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  deck.addEventListener('touchend', function (e) {
+    if (tx === null || document.body.classList.contains('read')) return;
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) show(cur + (dx < 0 ? 1 : -1));
+    tx = null;
+  });
+
+  window.addEventListener('resize', function () { layout(); });
+  window.addEventListener('beforeprint', function () { layout(1000 / 1280); });
+  window.addEventListener('afterprint', function () { layout(); });
+  show(cur);
+})();
+</script>
+</body>
+</html>
